@@ -19,7 +19,7 @@ export class AppConfigService {
         let str;
         try {
             str = readFileSync(
-                'src/module/auth/certs/private-key.pem',
+                'src/module/customer/auth/certs/private-key.pem',
             ).toString();
         } catch (e) {
             throw new InternalServerErrorException(

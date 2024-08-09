@@ -5,9 +5,11 @@ import { APP_FILTER, APP_INTERCEPTOR, APP_PIPE } from '@nestjs/core';
 import { HttpExceptionFilter } from './common/filters/http.exception.filter';
 import { AllExceptionsFilter } from './common/filters/all.exception.filter';
 import { ResponseInterceptor } from './common/interceptor/response.interceptor';
+import { PrismaModule } from './module/prisma/prisma.module';
+import { AuthModule } from './module/customer/auth/auth.module';
 
 @Module({
-    imports: [],
+    imports: [PrismaModule, AuthModule],
     controllers: [AppController],
     providers: [
         { provide: APP_INTERCEPTOR, useClass: ResponseInterceptor },
