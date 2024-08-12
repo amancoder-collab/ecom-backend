@@ -13,6 +13,11 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+enum Role {
+  USER
+  SELLER
+}
+
 // schema.prisma
 model user {
   id            String    @id @default(uuid())
@@ -27,7 +32,7 @@ model user {
   access_token  String?
   refresh_token String?
   deleted_at    DateTime?
-  is_seller     Boolean   @default(false)
+  role          Role      @default(USER)
   is_deleted    Boolean   @default(false)
   created_at    DateTime  @default(now())
   updated_at    DateTime  @updatedAt
@@ -52,7 +57,7 @@ model products {
   stock               Int
   size                String[]
   colors              String[]
-  images              String
+  images              String[]
   created_at          DateTime   @default(now())
   updated_at          DateTime   @updatedAt
   user                user?      @relation(fields: [user_id], references: [id], onDelete: Cascade)

@@ -5,3 +5,7 @@ export class ApiError {
     static BAD_REQUEST = 'Bad request';
     static NOT_FOUND = 'Not found';
 }
+
+export class ClientLogError {
+    static ONLY_SELLER = 'only seller can allow';
+}
