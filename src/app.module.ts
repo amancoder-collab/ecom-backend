@@ -7,9 +7,10 @@ import { AllExceptionsFilter } from './common/filters/all.exception.filter';
 import { ResponseInterceptor } from './common/interceptor/response.interceptor';
 import { PrismaModule } from './module/prisma/prisma.module';
 import { AuthModule } from './module/customer/auth/auth.module';
+import { ProductsModule } from './module/admin/products/products.module';
 
 @Module({
-    imports: [PrismaModule, AuthModule],
+    imports: [PrismaModule, ProductsModule, AuthModule],
     controllers: [AppController],
     providers: [
         { provide: APP_INTERCEPTOR, useClass: ResponseInterceptor },
