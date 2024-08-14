@@ -23,3 +23,18 @@ type SpecificationJsonWhileUpdate = {
     country_of_origin?: string;
     warranty?: string;
 };
+
+type UpdateAddressInput = {
+    yourName?: string;
+    houseNumber?: string;
+    street?: string;
+    city?: string;
+    state?: string;
+    country?: string;
+    pincode?: string;
+    landMark?: string;
+    phoneNumber?: string;
+    companyName?: string;
+    gstNumber?: string;
+    userId?: string;
+};
