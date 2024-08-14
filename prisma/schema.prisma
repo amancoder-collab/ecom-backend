@@ -90,7 +90,7 @@ model review {
   id         String    @id @default(uuid())
   comments   String
   images     String[]
-  rating     String
+  rating     Int
   created_at DateTime  @default(now())
   updated_at DateTime  @updatedAt
   products   products? @relation(fields: [product_id], references: [id], onDelete: Cascade)
