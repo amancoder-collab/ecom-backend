@@ -105,6 +105,7 @@ model cart {
   user_id    String?
   products   products? @relation(fields: [product_id], references: [id], onDelete: Cascade)
   product_id String?
+  quantities Int
   created_at DateTime  @default(now())
   updated_at DateTime  @updatedAt
 }

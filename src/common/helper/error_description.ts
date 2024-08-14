@@ -8,4 +8,8 @@ export class ApiError {
 
 export class ClientLogError {
     static ONLY_SELLER = 'only seller can allow';
+    static USER_NOT_FOUND = 'user not found';
+    static PRODUCT_NOT_FOUND = 'product not found';
+    static QUANTITY_CANT_BE_ZERO = 'quantity must be greater than zero';
+    static CART_NOT_EXIST = 'cart does not exit';
 }

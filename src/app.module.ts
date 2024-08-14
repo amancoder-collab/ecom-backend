@@ -8,9 +8,17 @@ import { ResponseInterceptor } from './common/interceptor/response.interceptor';
 import { PrismaModule } from './module/prisma/prisma.module';
 import { AuthModule } from './module/customer/auth/auth.module';
 import { ProductsModule } from './module/admin/products/products.module';
+import { CartModule } from './module/customer/cart/cart.module';
+import { AddressModule } from './module/customer/address/address.module';
 
 @Module({
-    imports: [PrismaModule, ProductsModule, AuthModule],
+    imports: [
+        PrismaModule,
+        ProductsModule,
+        AuthModule,
+        CartModule,
+        AddressModule,
+    ],
     controllers: [AppController],
     providers: [
         { provide: APP_INTERCEPTOR, useClass: ResponseInterceptor },
