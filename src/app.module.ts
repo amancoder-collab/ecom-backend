@@ -10,6 +10,7 @@ import { AuthModule } from './module/customer/auth/auth.module';
 import { ProductsModule } from './module/admin/products/products.module';
 import { CartModule } from './module/customer/cart/cart.module';
 import { AddressModule } from './module/customer/address/address.module';
+import { ReviewModule } from './module/customer/review/review.module';
 
 @Module({
     imports: [
@@ -18,6 +19,7 @@ import { AddressModule } from './module/customer/address/address.module';
         AuthModule,
         CartModule,
         AddressModule,
+        ReviewModule,
     ],
     controllers: [AppController],
     providers: [
