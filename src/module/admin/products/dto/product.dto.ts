@@ -35,6 +35,7 @@ export class AddProductDto {
     })
     @IsInt()
     gst: number;
+
     @ApiProperty({
         example: '1299',
         description: 'discountedPrices of product',

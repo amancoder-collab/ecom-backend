@@ -58,6 +58,7 @@ model products {
   size                String[]
   colors              String[]
   images              String[]
+  is_live             Boolean    @default(true)
   created_at          DateTime   @default(now())
   updated_at          DateTime   @updatedAt
   user                user?      @relation(fields: [user_id], references: [id], onDelete: Cascade)

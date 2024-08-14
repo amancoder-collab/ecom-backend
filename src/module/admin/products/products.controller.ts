@@ -4,8 +4,10 @@ import {
     Delete,
     Get,
     HttpStatus,
+    Param,
     Patch,
     Post,
+    Query,
     Request,
     UseGuards,
 } from '@nestjs/common';
@@ -46,8 +48,11 @@ export class ProductsController {
         summary: 'Get product by USER and SELLER',
         description: 'Get product by USER and SELLER',
     })
-    async getListOfProducts() {
-        return this.productService.getListProduct();
+    async getListOfProducts(
+        @Query('page') page: number = 1,
+        @Query('limit') limit: number = 10,
+    ) {
+        return this.productService.getListProduct(page, limit);
     }
 
     @Post()
@@ -100,8 +105,39 @@ export class ProductsController {
         summary: 'update product by SELLER',
         description: 'update product by SELLER',
     })
-    async updateProducts(@Body() dto: UpdateProductDto) {
-        return this.productService.updateProducts(dto);
+    async updateProducts(
+        @Param('id') productId: string,
+        @Body() dto: UpdateProductDto,
+        @Request() req,
+    ) {
+        const AdminId = req.user.id;
+        return this.productService.updateProducts(dto, AdminId, productId);
+    }
+
+    @Patch('deactivate/:id')
+    @ApiResponse({
+        status: HttpStatus.OK,
+        description: ApiError.SUCCESS_MESSAGE,
+    })
+    @ApiResponse({
+        status: HttpStatus.UNAUTHORIZED,
+        description: ApiError.UNAUTHORIZED_MESSAGE,
+    })
+    @ApiResponse({
+        status: HttpStatus.INTERNAL_SERVER_ERROR,
+        description: ApiError.INTERNAL_SERVER_ERROR_MESSAGE,
+    })
+    @ApiResponse({
+        status: HttpStatus.BAD_REQUEST,
+        description: ApiError.BAD_REQUEST,
+    })
+    @ApiOperation({
+        summary: 'DeActive product by SELLER',
+        description: 'DeActive product by SELLER',
+    })
+    async deactivateProduct(@Param('id') productId: string, @Request() req) {
+        const AdminId = req.user.id;
+        return this.productService.deactivateProduct(AdminId, productId);
     }
 
     @Delete(':id')
@@ -125,7 +161,8 @@ export class ProductsController {
         summary: 'update product by SELLER',
         description: 'update product by SELLER',
     })
-    async deleteProducts() {
-        return this.productService.deleteProducts();
+    async deleteProducts(@Param('id') productId: string, @Request() req) {
+        const AdminId = req.user.id;
+        return this.productService.deleteProducts(productId, AdminId);
     }
 }
