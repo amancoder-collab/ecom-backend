@@ -11,11 +11,13 @@ import { ProductsModule } from './module/admin/products/products.module';
 import { CartModule } from './module/customer/cart/cart.module';
 import { AddressModule } from './module/customer/address/address.module';
 import { ReviewModule } from './module/customer/review/review.module';
+import { CouponsModule } from './module/admin/coupons/coupons.module';
 
 @Module({
     imports: [
         PrismaModule,
         ProductsModule,
+        CouponsModule,
         AuthModule,
         CartModule,
         AddressModule,

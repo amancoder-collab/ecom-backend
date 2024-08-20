@@ -95,7 +95,7 @@ export class CartService {
         });
     }
 
-    async listAllCart(page: number, limit: number) {
+    async listAllCart(page: number = 1, limit: number = 10) {
         const { skip, take } = this.operation.calculatePaginationOptimized(
             page,
             limit,

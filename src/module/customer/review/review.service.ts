@@ -85,14 +85,18 @@ export class ReviewService {
     }
 
     async findOneReview(UserId: string, productId: string) {
-        const [findProductId, findUserId] = await Promise.all([
+        const productAndUserExist = await this.prismaService.$transaction([
             this.prismaService.products.findUnique({
                 where: { id: productId },
+                select: { id: true },
             }),
             this.prismaService.user.findUnique({
                 where: { id: UserId },
+                select: { id: true },
             }),
         ]);
+
+        const [findProductId, findUserId] = productAndUserExist;
 
         if (!findProductId) {
             throw new BadRequestException(ClientLogError.PRODUCT_NOT_FOUND);
@@ -105,6 +109,7 @@ export class ReviewService {
         const review = await this.prismaService.review.findMany({
             where: {
                 product_id: productId,
+                user_id: UserId,
             },
             select: {
                 rating: true,

@@ -16,6 +16,7 @@ import {
     ApiResponse,
     ApiOperation,
     ApiTags,
+    ApiQuery,
 } from '@nestjs/swagger';
 import { ApiError } from 'src/common/helper/error_description';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
@@ -43,6 +44,8 @@ export class CartController {
         summary: 'Get cart by USER',
         description: 'Get cart by USER',
     })
+    @ApiQuery({ name: 'page', required: false })
+    @ApiQuery({ name: 'limit', required: false })
     async getListOfProducts(
         @Query('page') page: number = 1,
         @Query('limit') limit: number = 10,

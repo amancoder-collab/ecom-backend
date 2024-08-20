@@ -3,8 +3,6 @@ import {
     Controller,
     Get,
     HttpStatus,
-    Param,
-    Patch,
     Post,
     Query,
     Request,
@@ -94,8 +92,8 @@ export class ReviewController {
         description: ApiError.BAD_REQUEST,
     })
     @ApiOperation({
-        summary: 'get product review by USER ',
-        description: 'get product review by USER ',
+        summary: 'get single product review by USER ',
+        description: 'get single product review by USER ',
     })
     async getOne(@Query('id') productId: string, @Request() req) {
         const UserId = req.user.id;
