@@ -131,13 +131,16 @@ model otp {
 }
 
 model coupons {
-  id           String   @id @default(uuid())
-  coupon_code  String
-  coupons_used Boolean  @default(false)
-  valid_from   DateTime
-  valid_to     DateTime
-  created_at   DateTime @default(now())
-  updated_at   DateTime @updatedAt
+  id               String   @id @default(uuid())
+  coupon_code      String
+  coupons_used     Boolean  @default(false)
+  valid_from       DateTime
+  valid_to         DateTime
+  max_usage_amount Int
+  use_by           String?
+  is_active        Boolean  @default(false)
+  created_at       DateTime @default(now())
+  updated_at       DateTime @updatedAt
 }
 
 // ORDER schema is need to define again 
