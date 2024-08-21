@@ -37,12 +37,13 @@ model user {
   created_at    DateTime  @default(now())
   updated_at    DateTime  @updatedAt
 
-  address  address[]
-  products products[]
-  review   review[]
-  cart     cart[]
-  wishlist wishlist[]
-  otp      otp[]
+  address     address[]
+  products    products[]
+  review      review[]
+  cart        cart[]
+  wishlist    wishlist[]
+  otp         otp[]
+  CouponsUsBy CouponsUsBy[]
 }
 
 model products {
@@ -131,16 +132,29 @@ model otp {
 }
 
 model coupons {
-  id               String   @id @default(uuid())
-  coupon_code      String
-  coupons_used     Boolean  @default(false)
-  valid_from       DateTime
-  valid_to         DateTime
-  max_usage_amount Int
-  use_by           String?
-  is_active        Boolean  @default(false)
-  created_at       DateTime @default(now())
-  updated_at       DateTime @updatedAt
+  id                  String        @id @default(uuid())
+  coupon_title        String
+  discount_percentage Int
+  coupon_tnc          String[]
+  coupon_code         String        @unique
+  coupons_used        Boolean       @default(false)
+  valid_from          DateTime
+  valid_to            DateTime
+  max_usage_amount    Int
+  min_purchase_amount Int
+  CouponsUsBy         CouponsUsBy[]
+  is_active           Boolean       @default(true)
+  created_at          DateTime      @default(now())
+  updated_at          DateTime      @updatedAt
+}
+
+model CouponsUsBy {
+  id         String   @id @default(uuid())
+  coupons    coupons? @relation(fields: [coupons_id], references: [id])
+  coupons_id String?
+  user       user?    @relation(fields: [user_id], references: [id])
+  user_id    String?
+  created_at DateTime @default(now())
 }
 
 // ORDER schema is need to define again 
