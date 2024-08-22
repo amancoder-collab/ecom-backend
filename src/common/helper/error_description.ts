@@ -23,4 +23,5 @@ export class ClientLogError {
         'the order amount is higher than the allowed limit for this coupon';
     static REQ_MIN_PURCHASE = 'to use this coupon amount must be at least';
     static COUPON_CODE_EXISTS = 'coupon code already exist ';
+    static SOMETHING_WRONG = 'something went wrong try again ';
 }

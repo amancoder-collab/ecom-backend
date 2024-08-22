@@ -146,6 +146,8 @@ model coupons {
   is_active           Boolean       @default(true)
   created_at          DateTime      @default(now())
   updated_at          DateTime      @updatedAt
+
+  @@index([coupon_code])
 }
 
 model CouponsUsBy {
@@ -188,4 +190,11 @@ model orderItem {
   created_at     DateTime @default(now())
   order          order?   @relation(fields: [order_id], references: [id], onDelete: Cascade)
   order_id       String?
+}
+
+model subscribeemail {
+  id         Int      @id @default(autoincrement())
+  email      String   @unique
+  created_at DateTime @default(now())
+  updated_at DateTime @updatedAt
 }

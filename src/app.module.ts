@@ -12,6 +12,7 @@ import { CartModule } from './module/customer/cart/cart.module';
 import { AddressModule } from './module/customer/address/address.module';
 import { ReviewModule } from './module/customer/review/review.module';
 import { CouponsModule } from './module/admin/coupons/coupons.module';
+import { SubscribemailModule } from './module/customer/subscribemail/subscribemail.module';
 
 @Module({
     imports: [
@@ -22,6 +23,7 @@ import { CouponsModule } from './module/admin/coupons/coupons.module';
         CartModule,
         AddressModule,
         ReviewModule,
+        SubscribemailModule,
     ],
     controllers: [AppController],
     providers: [
