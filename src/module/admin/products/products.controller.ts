@@ -85,6 +85,9 @@ export class ProductsController {
     }
 
     @Patch(':id')
+    @ApiBearerAuth()
+    @UseGuards(JwtAuthGuard, RolesGuard)
+    @Roles(Role.SELLER)
     @ApiResponse({
         status: HttpStatus.OK,
         description: ApiError.SUCCESS_MESSAGE,
@@ -115,6 +118,9 @@ export class ProductsController {
     }
 
     @Patch('deactivate/:id')
+    @ApiBearerAuth()
+    @UseGuards(JwtAuthGuard, RolesGuard)
+    @Roles(Role.SELLER)
     @ApiResponse({
         status: HttpStatus.OK,
         description: ApiError.SUCCESS_MESSAGE,
@@ -141,6 +147,9 @@ export class ProductsController {
     }
 
     @Delete(':id')
+    @ApiBearerAuth()
+    @UseGuards(JwtAuthGuard, RolesGuard)
+    @Roles(Role.SELLER)
     @ApiResponse({
         status: HttpStatus.OK,
         description: ApiError.SUCCESS_MESSAGE,

@@ -10,7 +10,7 @@ export class SubEmailDto {
     })
     @IsEmail()
     @Matches(emailRegExp, {
-        message: "'Email' must be a valid E-Mail Format.",
+        message: 'Email must be a valid E-Mail Format.',
     })
     email: string;
 }
