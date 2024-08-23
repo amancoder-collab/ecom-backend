@@ -15,6 +15,7 @@ import { ProductsService } from './products.service';
 import {
     ApiBearerAuth,
     ApiOperation,
+    ApiQuery,
     ApiResponse,
     ApiTags,
 } from '@nestjs/swagger';
@@ -47,6 +48,16 @@ export class ProductsController {
     @ApiOperation({
         summary: 'Get product by USER and SELLER',
         description: 'Get product by USER and SELLER',
+    })
+    @ApiQuery({
+        name: 'page',
+        description: 'Type of customer details to fetch',
+        required: false,
+    })
+    @ApiQuery({
+        name: 'limit',
+        description: 'Type of customer details to fetch',
+        required: false,
     })
     async getListOfProducts(
         @Query('page') page: number = 1,

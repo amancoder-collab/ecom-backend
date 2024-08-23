@@ -69,21 +69,23 @@ export class AddProductDto {
     stock: number;
 
     @ApiProperty({
-        example: '[XXL,S,M,L,XL]',
+        example: ['XXL', 'S', 'M', 'L', 'XL'],
         description: 'size of product available',
     })
-    @IsString()
     size: string[];
 
     @ApiProperty({
-        example: '[red,green]',
+        example: ['red', 'green'],
         description: 'colors of product available',
     })
-    @IsString()
     colors: string[];
 
     @ApiProperty({
-        example: '[https://image.com,https://image2com,https://image3.com]',
+        example: [
+            'https://image.com',
+            'https://image2com',
+            'https://image3.com',
+        ],
         description: 'images of product',
     })
     images: string[];

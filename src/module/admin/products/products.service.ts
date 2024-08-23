@@ -35,6 +35,7 @@ export class ProductsService {
                     size: dto.size,
                     colors: dto.colors,
                     images: dto.images,
+                    user_id: AdminId,
                 },
             });
 
@@ -121,6 +122,17 @@ export class ProductsService {
             where: {
                 is_live: true,
             },
+        });
+        return result;
+    }
+    async getListProductForSeller(page: number, limit: number) {
+        const { skip, take } = this.operation.calculatePaginationOptimized(
+            page,
+            limit,
+        );
+        const result = await this.prismaService.products.findMany({
+            skip,
+            take,
         });
         return result;
     }
