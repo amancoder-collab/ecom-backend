@@ -37,7 +37,7 @@ export class SubscribemailService {
             throw new NotFoundException(ClientLogError.ONLY_SELLER);
         }
 
-        const { skip, take } = this.operation.calculatePaginationOptimized(
+        const { skip, take } = this.operation.calculatePagination(
             page,
             limit,
         );

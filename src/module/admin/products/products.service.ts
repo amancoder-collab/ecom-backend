@@ -112,10 +112,7 @@ export class ProductsService {
     }
 
     async getListProduct(page: number, limit: number) {
-        const { skip, take } = this.operation.calculatePaginationOptimized(
-            page,
-            limit,
-        );
+        const { skip, take } = this.operation.calculatePagination(page, limit);
         const result = await this.prismaService.products.findMany({
             skip,
             take,
@@ -126,10 +123,7 @@ export class ProductsService {
         return result;
     }
     async getListProductForSeller(page: number, limit: number) {
-        const { skip, take } = this.operation.calculatePaginationOptimized(
-            page,
-            limit,
-        );
+        const { skip, take } = this.operation.calculatePagination(page, limit);
         const result = await this.prismaService.products.findMany({
             skip,
             take,

@@ -68,6 +68,8 @@ model products {
   cart                cart[]
   wishlist            wishlist[]
   order               order[]
+
+ @@index([price_without_gst, product_name, descounted_prices])
 }
 
 model address {

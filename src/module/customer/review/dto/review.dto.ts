@@ -3,7 +3,7 @@ import { IsInt, IsNumber, IsString } from 'class-validator';
 
 export class ReviewDto {
     @ApiProperty({
-        example: 4,
+        example: 5,
         description: 'add the rating',
         required: true,
     })
@@ -19,17 +19,16 @@ export class ReviewDto {
     comment: string;
 
     @ApiProperty({
-        example: '[https://image1.com, https://image1.com]',
+        example: ['https://image1.com', 'https://image1.com'],
         description: 'images',
     })
-    @IsString()
     images: string[];
 
-    @ApiProperty({
-        example: 'string',
-        description: 'product id',
-        required: true,
-    })
-    @IsString()
-    productId: string;
+    // @ApiProperty({
+    //     example: 'string',
+    //     description: 'product id',
+    //     required: true,
+    // })
+    // @IsString()
+    // productId: string;
 }
