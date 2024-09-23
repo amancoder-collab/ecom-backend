@@ -8,7 +8,7 @@ export class UpdateAddressDto {
     })
     @IsString()
     @IsOptional()
-    yourName?: string;
+    your_name?: string;
 
     @ApiProperty({
         example: '123',
@@ -16,7 +16,7 @@ export class UpdateAddressDto {
     })
     @IsString()
     @IsOptional()
-    houseNumber?: string;
+    house_number?: string;
 
     @ApiProperty({
         example: 'Baker Street',
@@ -64,7 +64,7 @@ export class UpdateAddressDto {
     })
     @IsString()
     @IsOptional()
-    landMark?: string;
+    land_mark?: string;
 
     @ApiProperty({
         example: '+44 20 7946 0958',
@@ -72,7 +72,7 @@ export class UpdateAddressDto {
     })
     @IsString()
     @IsOptional()
-    phoneNumber?: string;
+    phone_number?: string;
 
     @ApiProperty({
         example: 'ABC Ltd.',
@@ -80,7 +80,7 @@ export class UpdateAddressDto {
     })
     @IsString()
     @IsOptional()
-    companyName?: string;
+    company_name?: string;
 
     @ApiProperty({
         example: '1234567890',
@@ -88,5 +88,5 @@ export class UpdateAddressDto {
     })
     @IsString()
     @IsOptional()
-    gstNumber?: string;
+    gst_number?: string;
 }

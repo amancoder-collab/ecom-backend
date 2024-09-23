@@ -15,10 +15,10 @@ export class ReviewService {
         private readonly operation: Operation,
     ) {}
 
-    async postReview(dto: ReviewDto, UserId) {
+    async postReview(dto: ReviewDto, UserId: string, productId: string) {
         const [findProductId, findUserId] = await Promise.all([
             this.prismaService.products.findUnique({
-                where: { id: dto.productId },
+                where: { id: productId },
             }),
             this.prismaService.user.findUnique({
                 where: { id: UserId },
@@ -42,7 +42,7 @@ export class ReviewService {
         const existingReview = await this.prismaService.review.findFirst({
             where: {
                 user_id: UserId,
-                product_id: dto.productId,
+                product_id: productId,
             },
         });
 
@@ -55,7 +55,7 @@ export class ReviewService {
                     rating: dto?.rating,
                     comments: dto?.comment,
                     images: dto?.images,
-                    product_id: dto?.productId,
+                    product_id: productId,
                     user_id: UserId,
                 },
             });
@@ -67,7 +67,7 @@ export class ReviewService {
                     rating: dto.rating,
                     comments: dto.comment,
                     images: dto.images,
-                    product_id: dto.productId,
+                    product_id: productId,
                     user_id: UserId,
                 },
             });
@@ -77,10 +77,7 @@ export class ReviewService {
     }
 
     async findAll(page: number, limit: number) {
-        const { skip, take } = this.operation.calculatePaginationOptimized(
-            page,
-            limit,
-        );
+        const { skip, take } = this.operation.calculatePagination(page, limit);
         return await this.prismaService.review.findMany({ skip, take });
     }
 

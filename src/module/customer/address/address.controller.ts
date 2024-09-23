@@ -101,7 +101,7 @@ export class AddressController {
         description: 'update address by USER',
     })
     async updateProducts(
-        @Param('id') addressId: string,
+        @Query('addressId') addressId: string,
         @Body() dto: UpdateAddressDto,
         @Request() req,
     ) {
@@ -132,7 +132,10 @@ export class AddressController {
         summary: 'delete address by SELLER',
         description: 'delete address by SELLER',
     })
-    async deleteProducts(@Param('id') AddressId: string, @Request() req) {
+    async deleteProducts(
+        @Query('addressId') AddressId: string,
+        @Request() req,
+    ) {
         const UserId = req.user.id;
         return this.addressService.deleteAddress(AddressId, UserId);
     }
