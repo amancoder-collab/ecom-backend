@@ -13,6 +13,7 @@ import { AddressModule } from './module/customer/address/address.module';
 import { ReviewModule } from './module/customer/review/review.module';
 import { CouponsModule } from './module/admin/coupons/coupons.module';
 import { SubscribemailModule } from './module/customer/subscribemail/subscribemail.module';
+import { DashboardModule } from './module/customer/dashboard/dashboard.module';
 
 @Module({
     imports: [
@@ -20,6 +21,7 @@ import { SubscribemailModule } from './module/customer/subscribemail/subscribema
         ProductsModule,
         CouponsModule,
         AuthModule,
+        DashboardModule,
         CartModule,
         AddressModule,
         ReviewModule,
