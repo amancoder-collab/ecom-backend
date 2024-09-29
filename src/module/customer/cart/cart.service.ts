@@ -96,10 +96,7 @@ export class CartService {
     }
 
     async listAllCart(page: number = 1, limit: number = 10) {
-        const { skip, take } = this.operation.calculatePagination(
-            page,
-            limit,
-        );
+        const { skip, take } = this.operation.calculatePagination(page, limit);
         const result = await this.prismaService.cart.findMany({
             skip,
             take,
