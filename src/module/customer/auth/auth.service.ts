@@ -1,198 +1,118 @@
 import {
   BadRequestException,
   Injectable,
-  NotFoundException,
   UnauthorizedException,
 } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
-import { SignupDto } from './dto/signup.dto';
-import { loginDto } from './dto/login.dto';
-import { JwtHelper } from 'src/common/helper/jwt.helper';
-import { HashHelper } from 'src/common/helper/hash.helper';
+import { User } from '@prisma/client';
+import { AppConfigService } from 'src/lib/config/config.service';
 import { PrismaService } from 'src/module/prisma/prisma.service';
-import { DbHelper } from 'src/common/helper/db.helpers';
+import { LoginDto } from './dto/login.dto';
+import { SignupDto } from './dto/signup.dto';
+import { HashService } from './hash.service';
+import { TokensService } from './tokens.service';
 
 @Injectable()
 export class AuthService {
-  private dbHelper: DbHelper;
-  private hashHelper: HashHelper;
-  private jwtHelper: JwtHelper;
-
   constructor(
+    private readonly hashService: HashService,
     private readonly prismaService: PrismaService,
     private readonly jwtService: JwtService,
-  ) {
-    this.dbHelper = new DbHelper(prismaService);
-    this.hashHelper = new HashHelper();
-    this.jwtHelper = new JwtHelper(jwtService);
+    private readonly configService: AppConfigService,
+    private readonly tokensService: TokensService,
+  ) {}
+
+  private async findUserByEmail(email: string): Promise<User | null> {
+    return this.prismaService.user.findUnique({
+      where: { email, isDeleted: false },
+    });
+  }
+
+  async findUserById(id: string): Promise<User | null> {
+    return await this.prismaService.user.findUnique({
+      where: { id, isDeleted: false },
+    });
   }
 
   async signup(dto: SignupDto) {
-    const existingUser = await this.prismaService.user.findFirst({
-      where: { email: dto.email },
-    });
+    const existingUser = await this.findUserByEmail(dto.email);
 
-    if (existingUser && existingUser.is_deleted) {
-      await this.prismaService.user.delete({
-        where: { id: existingUser.id },
-      });
-    }
-
-    const newUser = await this.prismaService.user.findFirst({
-      where: { email: dto.email },
-    });
-
-    if (newUser) {
+    if (existingUser) {
       throw new BadRequestException('Email is already registered.');
     }
 
-    const createUser = await this.createNewUser(dto);
+    const newUser = await this.createNewUser(dto);
 
-    const accessToken = await this.generateAccessToken(createUser.id);
+    const tokens = await this.tokensService.generate(newUser);
 
+    console.log('tokennnssss', tokens);
     return {
-      message: 'Sign up successfully!',
-      user_id: createUser.id,
-      access_token: accessToken.accessToken,
-      refresh_token: accessToken.refreshToken,
+      message: 'User registered successfully!',
+      user: newUser,
+      tokens,
     };
   }
 
-  async deletedUser(id: string) {
-    return await this.prismaService.user.delete({
-      where: { id: id },
-    });
-  }
+  async login(dto: LoginDto) {
+    const user = await this.validateUser(dto.email, dto.password);
+    const tokens = await this.tokensService.generate(user);
 
-  async login(dto: loginDto) {
-    const foundUser = await this.dbHelper.findUserByEmail(dto.email);
-
-    if (
-      !foundUser ||
-      !(await this.hashHelper.comparePassword(dto.password, foundUser.password))
-    ) {
-      throw new BadRequestException('Invalid email or password');
-    }
-
-    const accessToken = await this.generateAccessToken(foundUser.id);
-
-    const result = {
-      user_id: foundUser.id,
-      access_token: accessToken.accessToken,
-      refresh_token: accessToken.refreshToken,
+    return {
       message: 'Login successful!',
-    };
-    return result;
-  }
-
-  async generateAccessToken(id: string) {
-    const findUser = await this.prismaService.user.findUnique({
-      where: { id, is_deleted: false },
-    });
-    if (!findUser) {
-      throw new NotFoundException('user is not found');
-    }
-    const [accessToken, refreshToken] = await Promise.all([
-      this.jwtService.signAsync(
-        {
-          id: id,
-          email: findUser.email,
-        },
-        {
-          expiresIn: Number(process.env.ACCESS_TOKEN_SECRET_EXPIRE),
-        },
-      ),
-      this.jwtService.signAsync(
-        {
-          sub: id,
-        },
-        {
-          expiresIn: Number(process.env.REFRESH_TOKEN_SECRET_EXPIRE),
-        },
-      ),
-    ]);
-    const token = await this.hashHelper.hash(refreshToken);
-    await this.prismaService.user
-      .update({
-        where: {
-          id: id,
-        },
-        data: {
-          refresh_token: token,
-        },
-      })
-      .catch((err) => {
-        console.log(err);
-        throw new BadRequestException('Something went wrong');
-      });
-    return {
-      accessToken,
-      refreshToken,
+      user,
+      tokens,
     };
   }
 
-  async findOne(id: string) {
-    return await this.prismaService.user.findUnique({
-      where: { id, is_deleted: false },
-    });
-  }
   async refreshToken(refreshToken: string) {
     try {
-      if (refreshToken === null) {
-        throw new UnauthorizedException('Refresh token is null');
-      }
+      const payload = await this.tokensService.verifyRefreshToken(refreshToken);
 
-      const payload = await this.jwtService.verifyAsync(refreshToken, {
-        ignoreExpiration: true,
+      const user = await this.prismaService.user.findUnique({
+        where: { id: payload.sub, isDeleted: false },
       });
 
-      const foundUser = await this.prismaService.user.findUnique({
-        where: { id: payload.sub, is_deleted: false },
-      });
-
-      const compareToken = await this.hashHelper.compare(
-        refreshToken,
-        foundUser?.refresh_token || '',
-      );
-      if (!compareToken || !foundUser) {
+      if (
+        !user ||
+        !(await this.hashService.compare(refreshToken, user.refreshToken))
+      ) {
         throw new UnauthorizedException('Invalid refresh token');
       }
 
-      const token = await this.generateAccessToken(foundUser.id);
+      const newAccessToken =
+        await this.tokensService.generateAccessTokenFromRefreshToken(user);
 
       return {
         message: 'Token refreshed successfully!',
-
-        access_token: token.accessToken,
-        refresh_token: token.refreshToken,
+        accessToken: newAccessToken,
       };
-    } catch (e) {
-      if (e.name === 'TokenExpiredError') {
-        throw new UnauthorizedException('Token has expired');
-      } else if (e.name === 'JsonWebTokenError') {
-        throw new UnauthorizedException('Invalid token');
-      } else {
-        throw new UnauthorizedException('Invalid token');
-      }
+    } catch (error) {
+      throw new UnauthorizedException('Invalid or expired token');
     }
   }
 
-  private async createNewUser(dto: SignupDto) {
-    const hashedPassword = await this.hashHelper.hashPassword(dto.password);
-    const date = new Date(dto.birthDate).toISOString();
-    return this.prismaService.$transaction(async (prisma) => {
-      const user = await prisma.user.create({
-        data: {
-          first_name: dto.fullName,
-          email: dto.email,
-          phone_number: dto.phoneNumber,
-          password: hashedPassword,
-          date_of_birth: date,
-          gender: dto.gender,
-        },
-      });
+  private async validateUser(email: string, password: string): Promise<User> {
+    const user = await this.findUserByEmail(email);
+    if (
+      !user ||
+      !(await this.hashService.comparePassword(password, user.password))
+    ) {
+      throw new UnauthorizedException('Invalid email or password');
+    }
+    return user;
+  }
 
-      return user;
+  private async createNewUser(dto: SignupDto): Promise<User> {
+    const hashedPassword = await this.hashService.hashPassword(dto.password);
+    return this.prismaService.user.create({
+      data: {
+        firstName: dto.fullName,
+        email: dto.email,
+        phoneNumber: dto.phoneNumber,
+        password: hashedPassword,
+        dateOfBirth: new Date(dto.birthDate),
+        gender: dto.gender,
+      },
     });
   }
 }

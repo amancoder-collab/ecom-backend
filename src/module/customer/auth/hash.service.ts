@@ -1,6 +1,10 @@
+import { Injectable } from '@nestjs/common';
 import * as bcrypt from 'bcrypt';
 
-export class HashHelper {
+@Injectable()
+export class HashService {
+  constructor() {}
+
   async hashPassword(password: string) {
     const saltOrRounds = 10;
     return bcrypt.hash(password, saltOrRounds);
@@ -11,12 +15,11 @@ export class HashHelper {
   }
 
   async hash(data: string): Promise<string> {
-    const salt =  10;; // Generate salt
-    return bcrypt.hash(data, salt); // Hash the data with the salt
+    const salt = 10;
+    return bcrypt.hash(data, salt);
   }
 
-  // Method to compare a given string with a hash
   async compare(data: string, hashedData: string): Promise<boolean> {
-    return bcrypt.compare(data, hashedData); // Compare data with hashedData
+    return bcrypt.compare(data, hashedData);
   }
 }

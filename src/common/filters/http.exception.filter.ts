@@ -1,9 +1,11 @@
 import {
-    ArgumentsHost,
-    Catch,
-    ExceptionFilter,
-    HttpException,
-    Injectable,
+  ArgumentsHost,
+  Catch,
+  ExceptionFilter,
+  HttpException,
+  HttpStatus,
+  Injectable,
+  Logger,
 } from '@nestjs/common';
 import { isObject } from '@nestjs/common/utils/shared.utils';
 import { Request, Response } from 'express';
@@ -12,49 +14,50 @@ import { makeResponse } from '../types/responce.type';
 @Injectable()
 @Catch(HttpException)
 export class HttpExceptionFilter implements ExceptionFilter {
-    catch(exception: HttpException, host: ArgumentsHost) {
-        const ctx = host.switchToHttp();
-        const response = ctx.getResponse<Response>();
-        const request = ctx.getRequest<Request>();
+  private readonly logger = new Logger('Interceptor');
 
-        console.error('error in http exception', {
-            ...exception,
-            path: request.url,
-        });
+  catch(exception: HttpException, host: ArgumentsHost) {
+    const ctx = host.switchToHttp();
+    const response = ctx.getResponse<Response>();
+    const request = ctx.getRequest<Request>();
+    const status =
+      exception instanceof HttpException
+        ? exception.getStatus()
+        : HttpStatus.INTERNAL_SERVER_ERROR;
 
-        const res = exception.getResponse() as
-            | string
-            | {
-                  success?: boolean;
-                  message: string | string[];
-                  error?: string;
-                  data?: object;
-              };
+    this.logger.error(exception);
 
-        let msg;
-        let error = '';
-        let success = false;
-        let data = {};
+    const res = exception.getResponse() as
+      | string
+      | {
+          success?: boolean;
+          message: string | string[];
+          error?: string;
+          data?: object;
+        };
 
-        if (isObject(res)) {
-            msg = Array.isArray(res.message) ? res.message.pop() : res.message;
-            error = typeof res.error === 'string' ? res.error : '';
-            data = res.data ?? {};
-            success = res.success ?? false;
-        } else {
-            msg = res;
-        }
+    let msg;
+    let error = '';
+    let success = false;
+    let data = {};
 
-        console.log('::: ERROR :::', error);
-
-        response.status(exception.getStatus()).json(
-            makeResponse({
-                success: success,
-                status: exception.getStatus(),
-                error: error,
-                message: msg,
-                data: data,
-            }),
-        );
+    if (isObject(res)) {
+      msg = Array.isArray(res.message) ? res.message.pop() : res.message;
+      error = typeof res.error === 'string' ? res.error : '';
+      data = res.data ?? {};
+      success = res.success ?? false;
+    } else {
+      msg = res;
     }
+
+    response.status(exception.getStatus()).json(
+      makeResponse({
+        success: success,
+        status: exception.getStatus(),
+        error: error,
+        message: msg,
+        data: data,
+      }),
+    );
+  }
 }

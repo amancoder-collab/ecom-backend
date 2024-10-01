@@ -1,32 +1,25 @@
-import {
-  Controller,
-  Post,
-  Body,
-  HttpStatus,
-  UploadedFile,
-  UseInterceptors,
-} from '@nestjs/common';
-import {
-  ApiResponse,
-  ApiTags,
-  ApiOperation,
-  ApiConsumes,
-} from '@nestjs/swagger';
+import { Body, Controller, Get, HttpStatus, Post, Res } from '@nestjs/common';
+import { ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
+import { User } from '@prisma/client';
+import { Response } from 'express';
+import { ApiError } from 'src/common/helper/error_description';
 import { AuthService } from './auth.service';
+import { clearTokenCookie, setTokenCookie } from './auth.utils';
+import { CurrentUser } from './decorators/get-current-user.decorator';
+import { LoginDto } from './dto/login.dto';
 import { RefreshTokenDto } from './dto/refresh-token.dto';
 import { SignupDto } from './dto/signup.dto';
-import { loginDto } from './dto/login.dto';
-import { FileInterceptor } from '@nestjs/platform-express';
-import { ApiError } from 'src/common/helper/error_description';
+import { AppConfigService } from 'src/lib/config/config.service';
 
 @Controller('auth')
 @ApiTags('Authentication')
 export class AuthController {
-  constructor(private readonly authService: AuthService) {}
+  constructor(
+    private readonly authService: AuthService,
+    private readonly configService: AppConfigService,
+  ) {}
 
   @Post('signup')
-  @UseInterceptors(FileInterceptor('file'))
-  @ApiConsumes('multipart/form-data')
   @ApiResponse({
     status: HttpStatus.OK,
     description: ApiError.SUCCESS_MESSAGE,
@@ -47,8 +40,16 @@ export class AuthController {
     summary: 'user Signup',
     description: 'user Signup',
   })
-  async signup(@Body() dto: SignupDto) {
-    return this.authService.signup(dto);
+  async signup(
+    @Body() dto: SignupDto,
+    @Res({
+      passthrough: true,
+    })
+    res: Response,
+  ) {
+    const response = await this.authService.signup(dto);
+    setTokenCookie(res, response.tokens, this.configService);
+    return response;
   }
 
   @Post('login')
@@ -76,8 +77,16 @@ export class AuthController {
     summary: 'user Login',
     description: 'user Login',
   })
-  async login(@Body() dto: loginDto) {
-    return this.authService.login(dto);
+  async login(
+    @Body() dto: LoginDto,
+    @Res({
+      passthrough: true,
+    })
+    res: Response,
+  ) {
+    const response = await this.authService.login(dto);
+    setTokenCookie(res, response.tokens, this.configService);
+    return response;
   }
 
   @Post('refresh-token')
@@ -105,8 +114,32 @@ export class AuthController {
     summary: 'Refresh token',
     description: 'Generate new access token using refresh token.',
   })
-  @Post('refresh-token')
   async refreshToken(@Body() dto: RefreshTokenDto) {
     return await this.authService.refreshToken(dto.refreshToken);
+  }
+
+  @Post('logout')
+  @ApiOperation({ summary: 'Logout store' })
+  async logout(
+    @Res({
+      passthrough: true,
+    })
+    res: Response,
+  ) {
+    clearTokenCookie(res, this.configService);
+    return {
+      message: 'Logout successful',
+    };
+  }
+
+  @Get('session')
+  @ApiOperation({ summary: 'Get session' })
+  async session(@CurrentUser() user: User) {
+    return {
+      data: {
+        user,
+      },
+      message: 'Session retrieved',
+    };
   }
 }
