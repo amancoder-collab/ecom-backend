@@ -45,9 +45,7 @@ export class AppConfigService {
   get jwtPublicKey(): string {
     let str;
     try {
-      console.log('pathhhhhh', this.getKeyPath('public-key.pem'));
       str = this.getKeyPath('public-key.pem');
-      console.log('str', str);
     } catch (e) {
       this.logger.error('Error in public ', e);
       throw new InternalServerErrorException(

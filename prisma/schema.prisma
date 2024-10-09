@@ -22,22 +22,20 @@ enum Gender {
 }
 
 model User {
-  id           String    @id @default(cuid())
-  firstName    String    @map("first_name")
-  lastName     String?   @map("last_name")
-  email        String    @unique
-  phoneNumber  String    @map("phone_number")
-  password     String
-  gender       Gender
-  dateOfBirth  DateTime  @map("date_of_birth")
-  fcmToken     String?   @map("fcm_token")
-  accessToken  String?   @map("access_token")
-  refreshToken String?   @map("refresh_token")
-  deletedAt    DateTime? @map("deleted_at")
-  role         Role      @default(USER)
-  isDeleted    Boolean   @default(false) @map("is_deleted")
-  createdAt    DateTime  @default(now()) @map("created_at")
-  updatedAt    DateTime  @updatedAt @map("updated_at")
+  id          String    @id @default(cuid())
+  firstName   String    @map("first_name")
+  lastName    String?   @map("last_name")
+  email       String    @unique
+  phoneNumber String    @map("phone_number")
+  password    String
+  gender      Gender
+  dateOfBirth DateTime  @map("date_of_birth")
+  fcmToken    String?   @map("fcm_token")
+  deletedAt   DateTime? @map("deleted_at")
+  role        Role      @default(USER)
+  isDeleted   Boolean   @default(false) @map("is_deleted")
+  createdAt   DateTime  @default(now()) @map("created_at")
+  updatedAt   DateTime  @updatedAt @map("updated_at")
 
   addresses   Address[]
   products    Product[]
@@ -56,6 +54,10 @@ model Product {
   description     String
   quantity        Int
   priceWithoutTax Int
+  weight          Float
+  breadth         Float
+  height          Float
+  length          Float
   tax             Int
   discountedPrice Int      @map("descounted_price")
   specification   Json
@@ -71,9 +73,9 @@ model Product {
   seller User? @relation(fields: [sellerId], references: [id], onDelete: Cascade)
 
   reviews   Review[]
-  carts     Cart[]
   wishlists Wishlist[]
   orders    Order[]
+  CartItem  CartItem[]
 
   @@index([priceWithoutTax, name, discountedPrice])
   @@map("products")
@@ -96,13 +98,15 @@ model Address {
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
+  billingCarts  Cart[] @relation("BillingAddress")
+  shippingCarts Cart[] @relation("ShippingAddress")
+
   @@map("addresses")
 }
 
 model Review {
   id        String   @id @default(cuid())
   comments  String
-  images    String[]
   productId String   @map("product_id")
   userId    String   @map("user_id")
   rating    Int
@@ -116,17 +120,37 @@ model Review {
 }
 
 model Cart {
+  id                String   @id @default(cuid())
+  userId            String   @unique @map("user_id")
+  billingAddressId  String?  @map("billing_address_id")
+  shippingAddressId String?  @map("shipping_address_id")
+  createdAt         DateTime @default(now()) @map("created_at")
+  updatedAt         DateTime @updatedAt @map("updated_at")
+
+  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  billingAddress  Address? @relation("BillingAddress", fields: [billingAddressId], references: [id], onDelete: Cascade)
+  shippingAddress Address? @relation("ShippingAddress", fields: [shippingAddressId], references: [id], onDelete: Cascade)
+
+  cartItems CartItem[]
+
+  @@map("carts")
+}
+
+model CartItem {
   id        String   @id @default(cuid())
-  userId    String   @map("user_id")
+  cartId    String   @map("cart_id")
   productId String   @map("product_id")
-  quantity  Int      @map("quantities")
+  quantity  Int
+  size      String?
+  color     String?
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
 
-  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  cart    Cart    @relation(fields: [cartId], references: [id], onDelete: Cascade)
   product Product @relation(fields: [productId], references: [id], onDelete: Cascade)
 
-  @@map("carts")
+  @@unique([cartId, productId, size, color])
+  @@map("cart_items")
 }
 
 model Wishlist {
@@ -227,4 +251,14 @@ model Subscribe {
   updatedAt DateTime @updatedAt @map("updated_at")
 
   @@map("subscribe")
+}
+
+model ShipRocketToken {
+  id        String   @id @default(cuid())
+  token     String
+  expiresAt DateTime @map("expires_at")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@map("ship_rocket_token")
 }

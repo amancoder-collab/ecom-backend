@@ -1,4 +1,12 @@
-import { Body, Controller, Get, HttpStatus, Post, Res } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Get,
+  HttpStatus,
+  Post,
+  Res,
+  UseGuards,
+} from '@nestjs/common';
 import { ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
 import { User } from '@prisma/client';
 import { Response } from 'express';
@@ -10,8 +18,11 @@ import { LoginDto } from './dto/login.dto';
 import { RefreshTokenDto } from './dto/refresh-token.dto';
 import { SignupDto } from './dto/signup.dto';
 import { AppConfigService } from 'src/lib/config/config.service';
+import { JwtAuthGuard } from './guards/jwt-auth.guard';
+import { Public } from './decorators/public';
 
 @Controller('auth')
+@UseGuards(JwtAuthGuard)
 @ApiTags('Authentication')
 export class AuthController {
   constructor(
@@ -20,6 +31,7 @@ export class AuthController {
   ) {}
 
   @Post('signup')
+  @Public()
   @ApiResponse({
     status: HttpStatus.OK,
     description: ApiError.SUCCESS_MESSAGE,
@@ -53,6 +65,7 @@ export class AuthController {
   }
 
   @Post('login')
+  @Public()
   @ApiResponse({
     status: HttpStatus.OK,
     description: ApiError.SUCCESS_MESSAGE,
@@ -136,9 +149,7 @@ export class AuthController {
   @ApiOperation({ summary: 'Get session' })
   async session(@CurrentUser() user: User) {
     return {
-      data: {
-        user,
-      },
+      user,
       message: 'Session retrieved',
     };
   }

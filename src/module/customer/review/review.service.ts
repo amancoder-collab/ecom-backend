@@ -54,7 +54,6 @@ export class ReviewService {
         data: {
           rating: dto?.rating,
           comments: dto?.comment,
-          images: dto?.images,
           productId: productId,
           userId: UserId,
         },
@@ -66,7 +65,6 @@ export class ReviewService {
         data: {
           rating: dto.rating,
           comments: dto.comment,
-          images: dto.images,
           productId: productId,
           userId: UserId,
         },
@@ -111,7 +109,6 @@ export class ReviewService {
       select: {
         rating: true,
         comments: true,
-        images: true,
         user: {
           select: {
             firstName: true,

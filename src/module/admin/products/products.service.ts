@@ -4,6 +4,7 @@ import { AddProductDto } from './dto/product.dto';
 import { UpdateProductDto } from './dto/update.product.dto';
 import { ClientLogError } from 'src/common/helper/error_description';
 import { Operation } from 'src/common/operations/operation.function';
+import { Role } from '@prisma/client';
 
 @Injectable()
 export class ProductsService {
@@ -16,7 +17,7 @@ export class ProductsService {
     const seller = await this.prismaService.user.findFirst({
       where: {
         id: sellerId,
-        role: 'SELLER',
+        role: Role.SELLER,
       },
     });
     if (!seller) {
@@ -26,6 +27,10 @@ export class ProductsService {
       const product = await prisma.product.create({
         data: {
           name: dto.productName,
+          weight: dto.weight,
+          breadth: dto.breadth,
+          height: dto.height,
+          length: dto.length,
           description: dto.productDescription,
           quantity: dto.quantities,
           priceWithoutTax: dto.priceWithoutGst,

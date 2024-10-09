@@ -9,6 +9,7 @@ export class Operation {
     const take = correctedLimit;
     return { skip, take };
   }
+  
   // public calculatePaginationOptimized(page: number, limit: number) {
   //     const correctedPage = page < 1 ? 1 : page;
   //     const correctedLimit = limit < 1 ? 1 : limit > 100 ? 100 : limit;

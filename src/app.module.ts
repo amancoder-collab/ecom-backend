@@ -14,6 +14,8 @@ import { DashboardModule } from './module/customer/dashboard/dashboard.module';
 import { ReviewModule } from './module/customer/review/review.module';
 import { PrismaModule } from './module/prisma/prisma.module';
 import { SubscribeModule } from './module/customer/subscribe/subscribe.module';
+import { ProductModule } from './module/customer/product/product.module';
+import { ShippingModule } from './shipping/shipping.module';
 
 @Module({
   imports: [
@@ -25,7 +27,9 @@ import { SubscribeModule } from './module/customer/subscribe/subscribe.module';
     CartModule,
     AddressModule,
     ReviewModule,
+    ProductModule,
     SubscribeModule,
+    ShippingModule,
   ],
   controllers: [AppController],
   providers: [

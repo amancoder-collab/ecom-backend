@@ -45,7 +45,6 @@ export class AuthService {
 
     const tokens = await this.tokensService.generate(newUser);
 
-    console.log('tokennnssss', tokens);
     return {
       message: 'User registered successfully!',
       user: newUser,
@@ -71,13 +70,6 @@ export class AuthService {
       const user = await this.prismaService.user.findUnique({
         where: { id: payload.sub, isDeleted: false },
       });
-
-      if (
-        !user ||
-        !(await this.hashService.compare(refreshToken, user.refreshToken))
-      ) {
-        throw new UnauthorizedException('Invalid refresh token');
-      }
 
       const newAccessToken =
         await this.tokensService.generateAccessTokenFromRefreshToken(user);

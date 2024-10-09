@@ -11,7 +11,6 @@ import {
   Request,
   UseGuards,
 } from '@nestjs/common';
-import { ProductsService } from './products.service';
 import {
   ApiBearerAuth,
   ApiOperation,
@@ -22,13 +21,17 @@ import {
 import { ApiError } from 'src/common/helper/error_description';
 import { AddProductDto } from './dto/product.dto';
 import { UpdateProductDto } from './dto/update.product.dto';
-import { Role } from '@prisma/client';
-import { RolesGuard } from 'src/common/guard/role.guard';
+import { ProductsService } from './products.service';
 import { JwtAuthGuard } from 'src/module/customer/auth/guards/jwt-auth.guard';
+import { Role } from '@prisma/client';
 import { Roles } from 'src/common/decorator/role.decorator';
+import { RolesGuard } from 'src/common/guard/role.guard';
 
-@Controller('products')
-@ApiTags('Products-admin')
+@Controller('admin/products')
+@ApiBearerAuth()
+@UseGuards(JwtAuthGuard, RolesGuard)
+@Roles(Role.SELLER)
+@ApiTags('Products Admin')
 export class ProductsController {
   constructor(private readonly productService: ProductsService) {}
 
@@ -67,9 +70,6 @@ export class ProductsController {
   }
 
   @Post()
-  @ApiBearerAuth()
-  @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles(Role.SELLER)
   @ApiResponse({
     status: HttpStatus.OK,
     description: ApiError.SUCCESS_MESSAGE,
@@ -96,9 +96,6 @@ export class ProductsController {
   }
 
   @Patch(':id')
-  @ApiBearerAuth()
-  @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles(Role.SELLER)
   @ApiResponse({
     status: HttpStatus.OK,
     description: ApiError.SUCCESS_MESSAGE,
@@ -129,9 +126,6 @@ export class ProductsController {
   }
 
   @Patch('deactivate/:id')
-  @ApiBearerAuth()
-  @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles(Role.SELLER)
   @ApiResponse({
     status: HttpStatus.OK,
     description: ApiError.SUCCESS_MESSAGE,
@@ -158,9 +152,6 @@ export class ProductsController {
   }
 
   @Delete(':id')
-  @ApiBearerAuth()
-  @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles(Role.SELLER)
   @ApiResponse({
     status: HttpStatus.OK,
     description: ApiError.SUCCESS_MESSAGE,
