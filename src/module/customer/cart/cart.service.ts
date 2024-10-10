@@ -3,12 +3,13 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
+import { Cart, CartItem, Product } from '@prisma/client';
 import { ClientLogError } from 'src/common/helper/error_description';
-import { Operation } from 'src/common/operations/operation.function';
 import { PrismaService } from 'src/module/prisma/prisma.service';
 import { AddCartItemDto } from './dto/add-cart-item.dto';
 import { UpdateCartItemQuantityDto } from './dto/update-cart-item.dto';
-import { Cart, CartItem, Product } from '@prisma/client';
+import { ShippingService } from 'src/shipping/shipping.service';
+import { CreateAddressDto } from './dto/create-address.dto';
 
 @Injectable()
 export class CartService {
@@ -187,8 +188,8 @@ export class CartService {
     return await this.retrieveWithTotals(userId);
   }
 
-  private async retrieveWithTotals(id: string): Promise<Cart> {
-    const cart = await this.findByUserId(id);
+  private async retrieveWithTotals(userId: string): Promise<Cart> {
+    const cart = await this.findByUserId(userId);
 
     const totals = await this.calculateTotals(cart);
 
@@ -259,6 +260,59 @@ export class CartService {
       where: { id: itemId, cartId: cartId },
       data: {
         quantity: dto.quantity,
+      },
+    });
+  }
+
+  async updateAddress(cartId: string, userId: string, dto: CreateAddressDto) {
+
+    const existingAddress = await this.prismaService.address.findFirst({
+      where: {
+        userId: userId,
+      },
+    });
+
+    if (existingAddress) {
+      return await this.prismaService.address.update({
+        where: { id: existingAddress.id },
+        data: {
+          firstName: dto.firstName,
+          lastName: dto.lastName,
+          address1: dto.address1,
+          address2: dto.address2,
+          city: dto.city,
+          state: dto.state,
+          country: dto.country,
+          pincode: dto.pincode,
+          userId: userId,
+        },
+      });
+    } else {
+      const address = await this.prismaService.address.create({
+      data: {
+        userId: userId,
+        firstName: dto.firstName,
+        lastName: dto.lastName,
+        address1: dto.address1,
+        address2: dto.address2,
+        city: dto.city,
+        state: dto.state,
+        country: dto.country,
+        pincode: dto.pincode,
+      },
+    });
+
+
+
+    return await this.prismaService.cart.update({
+      where: { id: cartId },
+      data: {
+        billingAddress: {
+          connect: { id: address.id },
+        },
+        shippingAddress: {
+          connect: { id: address.id },
+        },
       },
     });
   }

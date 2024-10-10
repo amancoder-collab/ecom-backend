@@ -9,36 +9,37 @@ export class AddressService {
   constructor(private readonly prismaService: PrismaService) {}
 
   async addAddress(dto: AddAddressDto, UserId: string) {
-    let user = await this.prismaService.user.findFirst({
-      where: {
-        id: UserId,
-      },
-    });
-    if (!user) {
-      throw new NotFoundException(ClientLogError.USER_NOT_FOUND);
-    }
-    const result = this.prismaService.$transaction(async (prisma) => {
-      const address = await prisma.address.create({
-        data: {
-          name: dto.name,
-          houseNumber: dto.houseNumber,
-          street: dto.street,
-          city: dto.city,
-          state: dto.gstNumber,
-          country: dto.country,
-          pincode: dto.pincode,
-          landmark: dto.landMark,
-          phoneNumber: dto.phoneNumber,
-          companyName: dto.companyName,
-          gstNumber: dto.gstNumber,
-          userId: UserId,
-        },
-      });
+    // let user = await this.prismaService.user.findFirst({
+    //   where: {
+    //     id: UserId,
+    //   },
+    // });
+    // if (!user) {
+    //   throw new NotFoundException(ClientLogError.USER_NOT_FOUND);
+    // }
+    // const result = this.prismaService.$transaction(async (prisma) => {
+    //   const address = await prisma.address.create({
+    //     data: {
+    //       firstName: dto.firstName,
+    //       lastName: dto.lastName,
+    //       address1: dto.address1,
+    //       address2: dto.address2,
+    //       city: dto.city,
+    //       state: dto.state,
+    //       country: dto.country,
+    //       pincode: dto.pincode,
+    //       landmark: dto.landMark,
+    //       phoneNumber: dto.phoneNumber,
+    //       companyName: dto.companyName,
+    //       gstNumber: dto.gstNumber,
+    //       userId: UserId,
+    //     },
+    //   });
 
-      return address;
-    });
+    //   return address;
+    // });
 
-    return result;
+    // return result;
   }
 
   async updateAddress(

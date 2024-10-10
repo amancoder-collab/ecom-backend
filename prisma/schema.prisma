@@ -82,19 +82,16 @@ model Product {
 }
 
 model Address {
-  id          String  @id @default(cuid())
-  userId      String  @map("user_id")
-  name        String  @map("your_name")
-  houseNumber String  @map("house_number")
-  street      String
-  city        String
-  state       String
-  country     String
-  pincode     String
-  landmark    String  @map("land_mark")
-  phoneNumber String  @map("phone_number")
-  companyName String? @map("company_name")
-  gstNumber   String? @map("gst_number")
+  id        String @id @default(cuid())
+  userId    String @map("user_id")
+  firstName String @map("first_name")
+  lastName  String @map("last_name")
+  address1  String @map("address1")
+  address2  String @map("address2")
+  city      String
+  state     String
+  country   String
+  pincode   String
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
