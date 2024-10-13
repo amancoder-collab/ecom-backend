@@ -1,5 +1,7 @@
 import {
   BadRequestException,
+  forwardRef,
+  Inject,
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
@@ -7,13 +9,17 @@ import { Cart, CartItem, Product } from '@prisma/client';
 import { ClientLogError } from 'src/common/helper/error_description';
 import { PrismaService } from 'src/module/prisma/prisma.service';
 import { AddCartItemDto } from './dto/add-cart-item.dto';
+import { CreateAddressDto } from './dto/create-address.dto';
 import { UpdateCartItemQuantityDto } from './dto/update-cart-item.dto';
 import { ShippingService } from 'src/shipping/shipping.service';
-import { CreateAddressDto } from './dto/create-address.dto';
 
 @Injectable()
 export class CartService {
-  constructor(private readonly prismaService: PrismaService) {}
+  constructor(
+    private readonly prismaService: PrismaService,
+    @Inject(forwardRef(() => ShippingService))
+    private readonly shippingService: ShippingService,
+  ) {}
 
   async addItemToCart(cartId: string, dto: AddCartItemDto, userId: string) {
     const result = await this.prismaService.$transaction(async (prisma) => {
@@ -62,8 +68,6 @@ export class CartService {
           color: dto.color,
         },
       });
-
-      console.log(existingCartItem, 'existingCartItem');
 
       if (existingCartItem) {
         const quantity = existingCartItem.quantity + dto.quantity;
@@ -140,9 +144,9 @@ export class CartService {
     });
   }
 
-  async removeItemFromCart(id: string, userId: string) {
+  async removeItemFromCart(cartId: string, itemId: string, userId: string) {
     const cartItem = await this.prismaService.cart.findFirst({
-      where: { id, userId: userId },
+      where: { id: cartId, userId: userId },
     });
 
     if (!cartItem) {
@@ -150,11 +154,11 @@ export class CartService {
     }
 
     return await this.prismaService.cart.update({
-      where: { id },
+      where: { id: cartId },
       data: {
         cartItems: {
           delete: {
-            id: id,
+            id: itemId,
           },
         },
       },
@@ -184,54 +188,27 @@ export class CartService {
     return cart;
   }
 
-  async findByUserIdWithTotals(userId: string) {
-    return await this.retrieveWithTotals(userId);
-  }
+  async findById(cartId: string) {
+    const cart = await this.prismaService.cart.findUnique({
+      where: {
+        id: cartId,
+      },
+      include: {
+        cartItems: {
+          include: {
+            product: true,
+          },
+        },
+        billingAddress: true,
+        shippingAddress: true,
+      },
+    });
 
-  private async retrieveWithTotals(userId: string): Promise<Cart> {
-    const cart = await this.findByUserId(userId);
-
-    const totals = await this.calculateTotals(cart);
-
-    return { ...cart, ...totals };
-  }
-
-  private async calculateTotals(cart: Cart & { cartItems: CartItem[] }) {
-    console.log(JSON.stringify(cart, null, 2), 'cart');
-    const cartItems = cart?.cartItems;
-
-    if (cartItems.length === 0) {
-      return {
-        shipping_total: 0,
-        total_items: 0,
-        discount_total: 0,
-        subtotal: 0,
-        total: 0,
-        refundable_amount: 0,
-      };
+    if (!cart) {
+      throw new NotFoundException(ClientLogError.CART_NOT_EXIST);
     }
 
-    const subtotal = this.calculateSubtotal(cartItems);
-
-    const totalItems = cartItems?.reduce(
-      (sum, item) => sum + item?.quantity,
-      0,
-    );
-
-    return {
-      discount_total: 0,
-      subtotal: subtotal,
-      total: subtotal,
-      total_items: totalItems,
-      refundable_amount: 0,
-    };
-  }
-
-  private calculateSubtotal(lineItems: CartItem[]): number {
-    return lineItems.reduce((sum, item: CartItem & { product: Product }) => {
-      const itemPrice = item?.product?.discountedPrice || 0;
-      return sum + itemPrice * item?.quantity;
-    }, 0);
+    return cart;
   }
 
   async updateCartItemQuantity(
@@ -265,54 +242,105 @@ export class CartService {
   }
 
   async updateAddress(cartId: string, userId: string, dto: CreateAddressDto) {
-
-    const existingAddress = await this.prismaService.address.findFirst({
-      where: {
-        userId: userId,
-      },
+    const existingCart = await this.prismaService.cart.findUnique({
+      where: { id: cartId },
+      include: { shippingAddress: true, billingAddress: true },
     });
 
-    if (existingAddress) {
-      return await this.prismaService.address.update({
-        where: { id: existingAddress.id },
+    if (!existingCart) {
+      throw new NotFoundException('Cart not found');
+    }
+
+    let shippingAddress, billingAddress;
+
+    if (existingCart.shippingAddress) {
+      shippingAddress = await this.prismaService.address.update({
+        where: { id: existingCart.shippingAddress.id },
         data: {
-          firstName: dto.firstName,
-          lastName: dto.lastName,
-          address1: dto.address1,
-          address2: dto.address2,
-          city: dto.city,
-          state: dto.state,
-          country: dto.country,
-          pincode: dto.pincode,
-          userId: userId,
+          firstName: dto.shipping.firstName,
+          lastName: dto.shipping.lastName,
+          address: dto.shipping.address,
+          email: dto.shipping.email,
+          address2: dto.shipping.address2,
+          phone: dto.shipping.phone,
+          city: dto.shipping.city,
+          state: dto.shipping.state,
+          country: dto.shipping.country,
+          pincode: dto.shipping.pincode,
         },
       });
     } else {
-      const address = await this.prismaService.address.create({
-      data: {
-        userId: userId,
-        firstName: dto.firstName,
-        lastName: dto.lastName,
-        address1: dto.address1,
-        address2: dto.address2,
-        city: dto.city,
-        state: dto.state,
-        country: dto.country,
-        pincode: dto.pincode,
-      },
-    });
+      shippingAddress = await this.prismaService.address.create({
+        data: {
+          userId,
+          firstName: dto.shipping.firstName,
+          lastName: dto.shipping.lastName,
+          email: dto.shipping.email,
+          address2: dto.shipping.address2,
+          phone: dto.shipping.phone,
+          address: dto.shipping.address,
+          city: dto.shipping.city,
+          state: dto.shipping.state,
+          country: dto.shipping.country,
+          pincode: dto.shipping.pincode,
+        },
+      });
+    }
 
-
+    if (dto.billing_same_as_shipping) {
+      billingAddress = shippingAddress;
+    } else {
+      if (
+        existingCart.billingAddress &&
+        existingCart.billingAddress.id !== shippingAddress.id
+      ) {
+        billingAddress = await this.prismaService.address.update({
+          where: { id: existingCart.billingAddress.id },
+          data: {
+            firstName: dto.billing.firstName,
+            lastName: dto.billing.lastName,
+            email: dto.billing.email,
+            address2: dto.billing.address2,
+            phone: dto.billing.phone,
+            address: dto.billing.address,
+            city: dto.billing.city,
+            state: dto.billing.state,
+            country: dto.billing.country,
+            pincode: dto.billing.pincode,
+          },
+        });
+      } else {
+        billingAddress = await this.prismaService.address.create({
+          data: {
+            userId,
+            firstName: dto.billing.firstName,
+            lastName: dto.billing.lastName,
+            email: dto.billing.email,
+            address2: dto.billing.address2,
+            phone: dto.billing.phone,
+            address: dto.billing.address,
+            city: dto.billing.city,
+            state: dto.billing.state,
+            country: dto.billing.country,
+            pincode: dto.billing.pincode,
+          },
+        });
+      }
+    }
 
     return await this.prismaService.cart.update({
       where: { id: cartId },
       data: {
-        billingAddress: {
-          connect: { id: address.id },
-        },
         shippingAddress: {
-          connect: { id: address.id },
+          connect: { id: shippingAddress.id },
         },
+        billingAddress: {
+          connect: { id: billingAddress.id },
+        },
+      },
+      include: {
+        shippingAddress: true,
+        billingAddress: true,
       },
     });
   }

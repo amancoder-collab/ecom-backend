@@ -119,4 +119,12 @@ export class AppConfigService {
   get smtpHost() {
     return this.get<string>('app.smtpHostname');
   }
+
+  get razorpayKeyId() {
+    return this.get<string>('app.razorpayKeyId');
+  }
+
+  get razorpayKeySecret() {
+    return this.get<string>('app.razorpayKeySecret');
+  }
 }

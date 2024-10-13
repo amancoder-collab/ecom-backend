@@ -1,3 +1,5 @@
+import { OrderModule } from './module/customer/order/order.module';
+import { OrderController } from './module/customer/order/order.controller';
 import { Module, ValidationPipe } from '@nestjs/common';
 import { APP_FILTER, APP_INTERCEPTOR, APP_PIPE } from '@nestjs/core';
 import { AppController } from './app.controller';
@@ -16,9 +18,15 @@ import { PrismaModule } from './module/prisma/prisma.module';
 import { SubscribeModule } from './module/customer/subscribe/subscribe.module';
 import { ProductModule } from './module/customer/product/product.module';
 import { ShippingModule } from './shipping/shipping.module';
+import { RazorpayModule } from 'nestjs-razorpay';
 
 @Module({
   imports: [
+    OrderModule,
+    // RazorpayModule.forRoot({
+    //   key_id: process.env.RAZORPAY_KEY_ID,
+    //   key_secret: process.env.RAZORPAY_KEY_SECRET,
+    // }),
     PrismaModule,
     ProductsModule,
     CouponsModule,
@@ -31,7 +39,7 @@ import { ShippingModule } from './shipping/shipping.module';
     SubscribeModule,
     ShippingModule,
   ],
-  controllers: [AppController],
+  controllers: [OrderController, AppController],
   providers: [
     { provide: APP_INTERCEPTOR, useClass: ResponseInterceptor },
     { provide: APP_FILTER, useClass: AllExceptionsFilter },

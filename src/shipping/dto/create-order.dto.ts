@@ -1,211 +1,240 @@
 import {
   IsString,
-  IsNumber,
-  IsBoolean,
+  IsInt,
+  IsOptional,
   IsEmail,
+  IsPhoneNumber,
+  IsBoolean,
+  IsNumber,
   IsArray,
   ValidateNested,
-  IsOptional,
+  IsDateString,
+  MaxLength,
+  Min,
+  IsIn,
 } from 'class-validator';
 import { Type } from 'class-transformer';
-import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-
-class OrderItemDto {
-  @ApiProperty({ example: 'Kunai' })
-  @IsString()
-  name: string;
-
-  @ApiProperty({ example: 'chakra123' })
-  @IsString()
-  sku: string;
-
-  @ApiProperty({ example: 10 })
-  @IsNumber()
-  units: number;
-
-  @ApiProperty({ example: '900' })
-  @IsString()
-  selling_price: string;
-
-  @ApiPropertyOptional()
-  @IsOptional()
-  @IsNumber()
-  discount?: number;
-
-  @ApiPropertyOptional()
-  @IsOptional()
-  @IsNumber()
-  tax?: number;
-
-  @ApiProperty({ example: 441122 })
-  @IsNumber()
-  hsn: number;
-}
 
 export class CreateShipRocketOrderDto {
-  @ApiProperty({ example: '224-447' })
   @IsString()
+  @MaxLength(50)
   order_id: string;
 
-  @ApiProperty()
-  @IsString()
-  reseller_name: string;
-
-  @ApiProperty()
-  @IsString()
-  company_name: string;
-
-  @ApiProperty({ example: new Date().toISOString() })
-  @IsString()
+  @IsDateString()
   order_date: string;
 
-  @ApiPropertyOptional()
-  @IsOptional()
   @IsString()
-  channel_id?: string;
+  pickup_location: string;
 
-  @ApiPropertyOptional({ example: 'Reseller: M/s Goku' })
+  @IsOptional()
+  @IsInt()
+  channel_id?: number;
+
   @IsOptional()
   @IsString()
   comment?: string;
 
-  @ApiProperty({ example: 'Naruto' })
+  @IsOptional()
+  @IsString()
+  reseller_name?: string;
+
+  @IsOptional()
+  @IsString()
+  company_name?: string;
+
   @IsString()
   billing_customer_name: string;
 
-  @ApiProperty({ example: 'Uzumaki' })
+  @IsOptional()
   @IsString()
-  billing_last_name: string;
+  billing_last_name?: string;
 
-  @ApiProperty({ example: 'House 221B, Leaf Village' })
   @IsString()
   billing_address: string;
 
-  @ApiProperty({ example: 'Near Hokage House' })
+  @IsOptional()
   @IsString()
-  billing_address_2: string;
+  billing_address_2?: string;
 
-  @ApiProperty({ example: 'New Delhi' })
   @IsString()
+  @MaxLength(30)
   billing_city: string;
 
-  @ApiProperty({ example: '110002' })
-  @IsString()
-  billing_pincode: string;
+  @IsInt()
+  billing_pincode: number;
 
-  @ApiProperty({ example: 'Delhi' })
   @IsString()
   billing_state: string;
 
-  @ApiProperty({ example: 'India' })
   @IsString()
   billing_country: string;
 
-  @ApiProperty({ example: 'naruto@uzumaki.com' })
   @IsEmail()
   billing_email: string;
 
-  @ApiProperty({ example: '9876543210' })
-  @IsString()
+  @IsPhoneNumber()
   billing_phone: string;
 
-  @ApiProperty({ example: true })
+  @IsOptional()
+  @IsPhoneNumber()
+  billing_alternate_phone?: string;
+
   @IsBoolean()
   shipping_is_billing: boolean;
 
-  @ApiPropertyOptional()
   @IsOptional()
   @IsString()
   shipping_customer_name?: string;
 
-  @ApiPropertyOptional()
   @IsOptional()
   @IsString()
   shipping_last_name?: string;
 
-  @ApiPropertyOptional()
   @IsOptional()
   @IsString()
   shipping_address?: string;
 
-  @ApiPropertyOptional()
   @IsOptional()
   @IsString()
   shipping_address_2?: string;
 
-  @ApiPropertyOptional()
+  @IsOptional()
+  @IsString()
+  billing_isd_code?: string;
+
   @IsOptional()
   @IsString()
   shipping_city?: string;
 
-  @ApiPropertyOptional()
   @IsOptional()
-  @IsString()
-  shipping_pincode?: string;
+  @IsInt()
+  shipping_pincode?: number;
 
-  @ApiPropertyOptional()
   @IsOptional()
   @IsString()
   shipping_country?: string;
 
-  @ApiPropertyOptional()
   @IsOptional()
   @IsString()
   shipping_state?: string;
 
-  @ApiPropertyOptional()
   @IsOptional()
-  @IsString()
+  @IsEmail()
   shipping_email?: string;
 
-  @ApiPropertyOptional()
   @IsOptional()
-  @IsString()
+  @IsPhoneNumber()
   shipping_phone?: string;
 
-  @ApiProperty({ type: [OrderItemDto] })
+  @IsOptional()
+  @IsNumber()
+  longitude?: number;
+
+  @IsOptional()
+  @IsNumber()
+  latitude?: number;
+
   @IsArray()
   @ValidateNested({ each: true })
-  @Type(() => OrderItemDto)
-  order_items: OrderItemDto[];
+  @Type(() => OrderItem)
+  order_items: OrderItem[];
 
-  @ApiProperty({ example: 'Prepaid' })
   @IsString()
   payment_method: string;
 
-  @ApiProperty({ example: 0 })
+  @IsOptional()
   @IsNumber()
-  shipping_charges: number;
+  shipping_charges?: number;
 
-  @ApiProperty({ example: 0 })
+  @IsOptional()
   @IsNumber()
-  giftwrap_charges: number;
+  giftwrap_charges?: number;
 
-  @ApiProperty({ example: 0 })
+  @IsOptional()
   @IsNumber()
-  transaction_charges: number;
+  transaction_charges?: number;
 
-  @ApiProperty({ example: 0 })
+  @IsOptional()
   @IsNumber()
-  total_discount: number;
+  total_discount?: number;
 
-  @ApiProperty({ example: 9000 })
   @IsNumber()
   sub_total: number;
 
-  @ApiProperty({ example: 10 })
   @IsNumber()
+  @Min(0.5)
   length: number;
 
-  @ApiProperty({ example: 15 })
   @IsNumber()
+  @Min(0.5)
   breadth: number;
 
-  @ApiProperty({ example: 20 })
   @IsNumber()
+  @Min(0.5)
   height: number;
 
-  @ApiProperty({ example: 2.5 })
   @IsNumber()
+  @Min(0)
   weight: number;
+
+  @IsOptional()
+  @IsString()
+  ewaybill_no?: string;
+
+  @IsOptional()
+  @IsString()
+  customer_gstin?: string;
+
+  @IsOptional()
+  @IsString()
+  invoice_number?: string;
+
+  @IsOptional()
+  @IsString()
+  @IsIn(['ESSENTIALS', 'NON ESSENTIALS'])
+  order_type?: string;
+
+  @IsOptional()
+  @IsString()
+  @IsIn(['SR_RUSH', 'SR_STANDARD', 'SR_EXPRESS', 'SR_QUICK'])
+  checkout_shipping_method?: string;
+
+  @IsOptional()
+  @IsString()
+  what3words_address?: string;
+
+  @IsOptional()
+  @IsBoolean()
+  is_insurance_opt?: boolean;
+
+  @IsOptional()
+  @IsInt()
+  @IsIn([0, 1])
+  is_document?: number;
+}
+
+class OrderItem {
+  @IsString()
+  name: string;
+
+  @IsString()
+  sku: string;
+
+  @IsInt()
+  units: number;
+
+  @IsNumber()
+  selling_price: number;
+
+  @IsOptional()
+  @IsNumber()
+  discount?: number;
+
+  @IsOptional()
+  @IsNumber()
+  tax?: number;
+
+  @IsOptional()
+  @IsInt()
+  hsn?: number;
 }

@@ -44,6 +44,7 @@ model User {
   wishlists   Wishlist[]
   otps        Otp[]
   couponsUsBy CouponUsage[]
+  Order       Order[]
 
   @@map("users")
 }
@@ -51,6 +52,7 @@ model User {
 model Product {
   id              String   @id @default(cuid())
   name            String
+  sku             String
   description     String
   quantity        Int
   priceWithoutTax Int
@@ -76,6 +78,7 @@ model Product {
   wishlists Wishlist[]
   orders    Order[]
   CartItem  CartItem[]
+  OrderItem OrderItem[]
 
   @@index([priceWithoutTax, name, discountedPrice])
   @@map("products")
@@ -86,12 +89,14 @@ model Address {
   userId    String @map("user_id")
   firstName String @map("first_name")
   lastName  String @map("last_name")
-  address1  String @map("address1")
-  address2  String @map("address2")
+  email     String
+  phone     String
+  address   String
+  address2  String @map("address_2")
   city      String
   state     String
   country   String
-  pincode   String
+  pincode   Int
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
@@ -207,37 +212,41 @@ model CouponUsage {
 
 model Order {
   id                    String   @id @default(cuid())
+  userId                String   @map("user_id")
   productId             String?  @map("product_id")
-  orderNumber           String   @map("order_number")
-  orderStatus           String   @map("order_status")
-  trackingId            String   @map("tracking_id")
+  billingAddressId      String?  @map("billing_address_id")
+  shippingAddressId     String?  @map("shipping_address_id")
+  orderDate             DateTime @map("order_date")
+  orderId               String   @unique @map("order_id")
   estimatedDeliveryDate String   @map("estimated_delivery_date")
   actualDeliveryDate    String   @map("actual_delivery_date")
-  trackingStatus        String   @map("tracking_status")
-  gstIn                 String   @map("gst_in")
-  pricePerUnit          String   @map("price_per_unit")
-  totalAmount           String   @map("total_amount")
-  deliveryDetail        String   @map("delivery_detail")
   shippingCost          String   @map("shipping_cost")
-  otherCost             String   @map("other_cost")
+  codCharges            String   @map("cod_charges")
   createdAt             DateTime @default(now()) @map("created_at")
   updatedAt             DateTime @updatedAt @map("updated_at")
 
+  user    User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  product Product? @relation(fields: [productId], references: [id], onDelete: Cascade)
+
   orderItems OrderItem[]
-  product    Product?    @relation(fields: [productId], references: [id], onDelete: Cascade)
 
   @@map("orders")
 }
 
 model OrderItem {
-  id           String   @id @default(cuid())
-  quantity     String
-  totalAmount  String   @map("total_amount")
-  pricePerUnit String   @map("price_per_unit")
-  createdAt    DateTime @default(now()) @map("created_at")
-  order        Order?   @relation(fields: [orderId], references: [id], onDelete: Cascade)
-  orderId      String?  @map("order_id")
+  id        String   @id @default(cuid())
+  productId String   @map("product_id")
+  orderId   String?  @map("order_id")
+  quantity  Int
+  size      String?
+  color     String?
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
 
+  product Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+  order   Order?  @relation(fields: [orderId], references: [id], onDelete: Cascade)
+
+  @@unique([orderId, productId, size, color])
   @@map("order_items")
 }
 

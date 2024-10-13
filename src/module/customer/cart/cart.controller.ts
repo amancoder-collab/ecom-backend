@@ -7,23 +7,17 @@ import {
   Param,
   Post,
   Put,
-  Query,
   Request,
   UseGuards,
 } from '@nestjs/common';
-import {
-  ApiBearerAuth,
-  ApiOperation,
-  ApiQuery,
-  ApiResponse,
-  ApiTags,
-} from '@nestjs/swagger';
+import { ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
+import { User } from '@prisma/client';
 import { ApiError } from 'src/common/helper/error_description';
+import { CurrentUser } from '../auth/decorators/get-current-user.decorator';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { CartService } from './cart.service';
 import { AddCartItemDto } from './dto/add-cart-item.dto';
-import { CurrentUser } from '../auth/decorators/get-current-user.decorator';
-import { User } from '@prisma/client';
+import { CreateAddressDto } from './dto/create-address.dto';
 import { UpdateCartItemQuantityDto } from './dto/update-cart-item.dto';
 
 @Controller('customer/cart')
@@ -50,7 +44,7 @@ export class CartController {
     description: 'Get cart by USER',
   })
   async getCartByUserId(@CurrentUser() user: User) {
-    return this.cartService.findByUserIdWithTotals(user.id);
+    return this.cartService.findByUserId(user.id);
   }
 
   @Post()
@@ -100,13 +94,14 @@ export class CartController {
     return this.cartService.updateCartItemQuantity(cartId, itemId, dto, UserId);
   }
 
-  @Delete('/:cartId/remove-item/:productId')
+  @Delete('/:cartId/remove-item/:itemId')
   async removeItemFromCart(
     @Request() req,
-    @Param('productId') productId: string,
+    @Param('cartId') cartId: string,
+    @Param('itemId') itemId: string,
   ) {
     const UserId = req.user.id;
-    return await this.cartService.removeItemFromCart(productId, UserId);
+    return await this.cartService.removeItemFromCart(cartId, itemId, UserId);
   }
 
   @Delete(':id')
@@ -133,5 +128,35 @@ export class CartController {
   async deleteProducts(@Param('id') productId: string, @Request() req) {
     const UserId = req.user.id;
     return this.cartService.removeFromCart(productId, UserId);
+  }
+
+  @Put('/:cartId/update-address')
+  @ApiResponse({
+    status: HttpStatus.OK,
+    description: ApiError.SUCCESS_MESSAGE,
+  })
+  @ApiResponse({
+    status: HttpStatus.UNAUTHORIZED,
+    description: ApiError.UNAUTHORIZED_MESSAGE,
+  })
+  @ApiResponse({
+    status: HttpStatus.INTERNAL_SERVER_ERROR,
+    description: ApiError.INTERNAL_SERVER_ERROR_MESSAGE,
+  })
+  @ApiResponse({
+    status: HttpStatus.BAD_REQUEST,
+    description: ApiError.BAD_REQUEST,
+  })
+  @ApiOperation({
+    summary: 'update address by USER',
+    description: 'update address by USER',
+  })
+  async updateAddress(
+    @Request() req,
+    @Param('cartId') cartId: string,
+    @Body() dto: CreateAddressDto,
+  ) {
+    const UserId = req.user.id;
+    return this.cartService.updateAddress(cartId, UserId, dto);
   }
 }
