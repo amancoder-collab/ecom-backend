@@ -1,20 +1,20 @@
-import { Injectable } from '@nestjs/common';
-import { InjectRazorpay } from 'nestjs-razorpay';
-import Razorpay from 'razorpay';
-import { CreateOrderDto } from './dto/create-order.dto';
+import { forwardRef, Inject, Injectable } from '@nestjs/common';
+import { Cart, CartItem, Product } from '@prisma/client';
+import { PrismaService } from 'src/module/prisma/prisma.service';
+import { CreateShipRocketOrderDto } from 'src/shipping/dto/create-order.dto';
 import { ShippingService } from 'src/shipping/shipping.service';
 import { CartService } from '../cart/cart.service';
-import { PrismaService } from 'src/module/prisma/prisma.service';
-import { Cart, CartItem, Product } from '@prisma/client';
-import { CreateShipRocketOrderDto } from 'src/shipping/dto/create-order.dto';
+import { CreateOrderDto } from './dto/create-order.dto';
 
 @Injectable()
 export class OrderService {
   public constructor(
+    @Inject(forwardRef(() => CartService))
+    @Inject(forwardRef(() => ShippingService))
     private readonly cartService: CartService,
     private readonly shippingService: ShippingService,
     private readonly prismaService: PrismaService,
-  ) {} // @InjectRazorpay() private readonly razorpayClient: Razorpay,
+  ) {}
 
   private async generateUniqueOrderId(): Promise<string> {
     const timestamp = Date.now().toString();
@@ -24,7 +24,7 @@ export class OrderService {
     const orderId = `${timestamp}${randomNum}`;
 
     const existingOrder = await this.prismaService.order.findUnique({
-      where: { orderId: orderId },
+      where: { shipRocketOrderId: orderId },
     });
 
     if (existingOrder) {
@@ -51,7 +51,40 @@ export class OrderService {
     return { ...largest, weight: totalWeight };
   }
 
-  async createOrder(userId: string, dto: CreateOrderDto) {
+  async findOrderByShipRocketOrderId(shipRocketOrderId: string) {
+    return this.prismaService.order.findUnique({
+      where: { shipRocketOrderId },
+      include: {
+        orderItems: true,
+        user: true,
+        payment: true,
+      },
+    });
+  }
+
+  async findOrderById(id: string) {
+    return this.prismaService.order.findUnique({
+      where: { id },
+      include: {
+        orderItems: true,
+        user: true,
+        payment: true,
+      },
+    });
+  }
+
+  async findOrdersByUserId(userId: string) {
+    return this.prismaService.order.findMany({
+      where: { userId },
+      include: {
+        orderItems: true,
+        user: true,
+        payment: true,
+      },
+    });
+  }
+
+  async createOrder(userId: string) {
     const locations = await this.shippingService.getAllPickupLocations();
 
     const cart = await this.cartService.findByUserId(userId);
@@ -81,7 +114,7 @@ export class OrderService {
         units: item.quantity,
         selling_price: item.product.discountedPrice,
       })),
-      payment_method: dto.payment_method,
+      payment_method: 'COD',
       total_discount: 0,
       sub_total: cart?.cartItems?.reduce((acc, product) => {
         return acc + product.product.discountedPrice * product.quantity;
@@ -106,16 +139,57 @@ export class OrderService {
       shipRocketOrderData.shipping_phone = cart?.shippingAddress?.phone;
     }
 
+    const shipRocketOrder =
+      await this.shippingService.createShipRocketOrder(shipRocketOrderData);
+
     const order = await this.prismaService.order.create({
       data: {
-        orderId: shipRocketOrderData.order_id,
-        userId: ,
-        orderDate: new Date(),
-        estimatedDeliveryDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000)
-          .toISOString(),
+        shipRocketOrderId: shipRocketOrder.order_id,
+        channelOrderId: shipRocketOrder.channel_order_id,
+        shipmentId: shipRocketOrder.shipment_id,
+        customOrderId: shipRocketOrderData.order_id,
+        orderDate: shipRocketOrderData.order_date,
+        estimatedDeliveryDate: cart?.estimatedDeliveryDate,
+        shippingCost: cart?.shippingCost,
+        codCharges: cart?.codCharges ?? 0,
+        subTotal: cart?.subTotal,
+        totalCost: cart?.totalCost,
+        user: {
+          connect: {
+            id: userId,
+          },
+        },
+        billingAddress: {
+          connect: {
+            id: cart?.billingAddressId,
+          },
+        },
+        shippingAddress: {
+          connect: {
+            id: cart?.shippingAddressId,
+          },
+        },
+        orderItems: {
+          createMany: {
+            data: cart?.cartItems.map((item) => ({
+              productId: item.productId,
+              quantity: item.quantity,
+              size: item.size,
+              color: item.color,
+            })),
+          },
+        },
+      },
+      include: {
+        billingAddress: true,
+        shippingAddress: true,
+        orderItems: true,
+        user: true,
+        payment: true,
       },
     });
 
-    // return await this.razorpayClient.orders.create(options);
+    console.log('ship rocket order', shipRocketOrder);
+    return order;
   }
 }

@@ -10,6 +10,13 @@ export class AddProductDto {
   productName: string;
 
   @ApiProperty({
+    example: 'SKU123',
+    description: 'SKU of product',
+  })
+  @IsString()
+  sku: string;
+
+  @ApiProperty({
     example: 'red silky shirt',
     description: 'red silky shirt',
   })

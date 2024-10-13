@@ -7,7 +7,7 @@ import { CalculateShippingDto } from './dto/calculate-shipping.dto';
 import { GetCouriersDto } from './dto/get-couriers.dto';
 import { ShippingService } from './shipping.service';
 
-@ApiTags('Shipping')
+@ApiTags('Customer Shipping')
 @UseGuards(JwtAuthGuard)
 @Controller('customer/shipping')
 export class ShippingController {
@@ -18,13 +18,14 @@ export class ShippingController {
     return this.shippingService.getAllPickupLocations();
   }
 
-  @Post('charges')
+  @Post('charges/:cartId')
   async getShippingCharges(
     @CurrentUser() user: User,
+    @Param('cartId') cartId: string,
     @Body() data: CalculateShippingDto,
   ) {
     console.log('User ', user);
-    return this.shippingService.getCharges(user.id, data);
+    return this.shippingService.getCharges(user.id, cartId, data);
   }
 
   @Post('get-available-couriers')
@@ -38,5 +39,10 @@ export class ShippingController {
   @ApiResponse({ status: 400, description: 'Invalid pincode' })
   async validatePincode(@Param('pincode') pincode: string) {
     return this.shippingService.validatePincode(pincode);
+  }
+
+  @Get('shiprocket-orders')
+  async getShipRocketOrders() {
+    return this.shippingService.getShipRocketOrders();
   }
 }

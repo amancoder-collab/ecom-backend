@@ -6,19 +6,20 @@ import {
   InternalServerErrorException,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { Cart, CartItem, Product } from '@prisma/client';
 import { CartService } from 'src/module/customer/cart/cart.service';
+import { OrderService } from 'src/module/customer/order/order.service';
 import { PrismaService } from 'src/module/prisma/prisma.service';
 import { CalculateShippingDto } from './dto/calculate-shipping.dto';
 import { CreateShipRocketOrderDto } from './dto/create-order.dto';
 import { GetCouriersDto } from './dto/get-couriers.dto';
-import { OrderService } from 'src/module/customer/order/order.service';
+import { ICreateShipRocketOrderResponse } from './interface/create-order';
 
 @Injectable()
 export class ShippingService {
   constructor(
     @Inject(forwardRef(() => CartService))
     private readonly cartService: CartService,
+    @Inject(forwardRef(() => OrderService))
     private readonly orderService: OrderService,
     private readonly httpService: HttpService,
     private readonly prismaService: PrismaService,
@@ -60,11 +61,11 @@ export class ShippingService {
     return token;
   }
 
-  async getCharges(userId: string, data: CalculateShippingDto) {
+  async getCharges(userId: string, cartId: string, data: CalculateShippingDto) {
     try {
       const token = await this.getValidToken();
 
-      const cart = await this.cartService.findByUserId(userId);
+      const cart = await this.cartService.findById(cartId);
 
       const weight = cart?.cartItems?.reduce((acc, product) => {
         return acc + product.product.weight * product.quantity;
@@ -132,7 +133,7 @@ export class ShippingService {
         shippingCourier = availableCourierCompanies[0];
       }
 
-      const totalCharges = {
+      const totalCharges: any = {
         shippingCost: shippingCourier.freight_charge,
         estimatedDeliveryDate: shippingCourier.etd,
         subTotal: subTotal,
@@ -145,6 +146,17 @@ export class ShippingService {
       if (data.cod === 1) {
         totalCharges['codCharges'] = shippingCourier.cod_charges;
       }
+
+      await this.prismaService.cart.update({
+        where: { id: cartId },
+        data: {
+          shippingCost: totalCharges.shippingCost,
+          codCharges: data.cod === 1 ? totalCharges.codCharges : null,
+          estimatedDeliveryDate: totalCharges.estimatedDeliveryDate,
+          subTotal: totalCharges.subTotal,
+          totalCost: totalCharges.totalCost,
+        },
+      });
 
       return totalCharges;
     } catch (err) {
@@ -214,9 +226,13 @@ export class ShippingService {
     }
   }
 
-  async createShipRocketOrder(dto: CreateShipRocketOrderDto) {
+  async createShipRocketOrder(
+    dto: CreateShipRocketOrderDto,
+  ): Promise<ICreateShipRocketOrderResponse> {
     try {
       const token = await this.getValidToken();
+
+      console.log('dto', dto);
 
       const response = await this.httpService
         .post(
@@ -238,6 +254,25 @@ export class ShippingService {
     }
   }
 
+  async getShipRocketOrders() {
+    try {
+      const token = await this.getValidToken();
+
+      const response = await this.httpService
+        .get('https://apiv2.shiprocket.in/v1/external/orders', {
+          headers: { Authorization: `Bearer ${token}` },
+        })
+        .toPromise();
+
+      return response.data;
+    } catch (err) {
+      console.error('Error fetching orders', err?.response?.data ?? err);
+      throw new InternalServerErrorException('Error fetching orders');
+    }
+  }
+
+  async generateAWBN(orderId: string) {}
+
   async validatePincode(pincode: string) {
     try {
       const token = await this.getValidToken();
@@ -256,6 +291,8 @@ export class ShippingService {
       if (response.data.success) {
         return {
           isValid: true,
+          city: response.data.postcode_details.city,
+          state: response.data.postcode_details.state,
         };
       } else {
         return {

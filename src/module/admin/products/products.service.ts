@@ -28,6 +28,7 @@ export class ProductsService {
         data: {
           name: dto.productName,
           weight: dto.weight,
+          sku: dto.sku,
           breadth: dto.breadth,
           height: dto.height,
           length: dto.length,
@@ -41,7 +42,11 @@ export class ProductsService {
           sizes: dto.size,
           colors: dto.colors,
           images: dto.images,
-          sellerId: sellerId,
+          seller: {
+            connect: {
+              id: sellerId,
+            },
+          },
         },
       });
 

@@ -1,5 +1,12 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsString, IsNotEmpty, IsOptional } from 'class-validator';
+import { Type } from 'class-transformer';
+import {
+  IsString,
+  IsNotEmpty,
+  IsOptional,
+  IsNumber,
+  ValidateNested,
+} from 'class-validator';
 
 export class AddressDto {
   @ApiProperty()
@@ -19,8 +26,8 @@ export class AddressDto {
 
   @ApiProperty()
   @IsString()
-  @IsNotEmpty()
-  address2: string;
+  @IsOptional()
+  address2?: string;
 
   @ApiProperty()
   @IsOptional()
@@ -48,14 +55,16 @@ export class AddressDto {
   phone: string;
 
   @ApiProperty()
-  @IsString()
+  @IsNumber()
   @IsNotEmpty()
-  pincode: string;
+  pincode: number;
 }
 
 export class CreateAddressDto {
   @ApiProperty()
   @IsOptional()
+  @ValidateNested()
+  @Type(() => AddressDto)
   billing?: AddressDto;
 
   @ApiProperty()
@@ -64,5 +73,7 @@ export class CreateAddressDto {
 
   @ApiProperty()
   @IsNotEmpty()
+  @ValidateNested()
+  @Type(() => AddressDto)
   shipping: AddressDto;
 }

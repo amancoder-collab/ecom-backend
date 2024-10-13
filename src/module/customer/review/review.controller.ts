@@ -24,7 +24,7 @@ import { User } from '@prisma/client';
 import { CurrentUser } from '../auth/decorators/get-current-user.decorator';
 
 @Controller('customer/review')
-@ApiTags('Review')
+@ApiTags('Customer Review')
 @UseGuards(JwtAuthGuard)
 export class ReviewController {
   constructor(private readonly reviewService: ReviewService) {}

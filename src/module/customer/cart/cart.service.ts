@@ -5,13 +5,12 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
-import { Cart, CartItem, Product } from '@prisma/client';
 import { ClientLogError } from 'src/common/helper/error_description';
 import { PrismaService } from 'src/module/prisma/prisma.service';
+import { ShippingService } from 'src/shipping/shipping.service';
 import { AddCartItemDto } from './dto/add-cart-item.dto';
 import { CreateAddressDto } from './dto/create-address.dto';
 import { UpdateCartItemQuantityDto } from './dto/update-cart-item.dto';
-import { ShippingService } from 'src/shipping/shipping.service';
 
 @Injectable()
 export class CartService {
@@ -125,7 +124,11 @@ export class CartService {
 
     return await this.prismaService.cart.create({
       data: {
-        userId: userId,
+        user: {
+          connect: {
+            id: userId,
+          },
+        },
       },
     });
   }
@@ -272,7 +275,11 @@ export class CartService {
     } else {
       shippingAddress = await this.prismaService.address.create({
         data: {
-          userId,
+          user: {
+            connect: {
+              id: userId,
+            },
+          },
           firstName: dto.shipping.firstName,
           lastName: dto.shipping.lastName,
           email: dto.shipping.email,
@@ -312,7 +319,11 @@ export class CartService {
       } else {
         billingAddress = await this.prismaService.address.create({
           data: {
-            userId,
+            user: {
+              connect: {
+                id: userId,
+              },
+            },
             firstName: dto.billing.firstName,
             lastName: dto.billing.lastName,
             email: dto.billing.email,

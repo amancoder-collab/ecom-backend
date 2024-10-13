@@ -21,6 +21,22 @@ enum Gender {
   OTHER
 }
 
+enum PaymentStatus {
+  PENDING
+  COMPLETED
+  FAILED
+  REFUNDED
+}
+
+enum PaymentMethod {
+  CREDIT_CARD
+  DEBIT_CARD
+  NET_BANKING
+  UPI
+  WALLET
+  COD
+}
+
 model User {
   id          String    @id @default(cuid())
   firstName   String    @map("first_name")
@@ -76,7 +92,6 @@ model Product {
 
   reviews   Review[]
   wishlists Wishlist[]
-  orders    Order[]
   CartItem  CartItem[]
   OrderItem OrderItem[]
 
@@ -85,14 +100,14 @@ model Product {
 }
 
 model Address {
-  id        String @id @default(cuid())
-  userId    String @map("user_id")
-  firstName String @map("first_name")
-  lastName  String @map("last_name")
+  id        String  @id @default(cuid())
+  userId    String  @map("user_id")
+  firstName String  @map("first_name")
+  lastName  String  @map("last_name")
   email     String
   phone     String
   address   String
-  address2  String @map("address_2")
+  address2  String? @map("address_2")
   city      String
   state     String
   country   String
@@ -100,8 +115,10 @@ model Address {
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  billingCarts  Cart[] @relation("BillingAddress")
-  shippingCarts Cart[] @relation("ShippingAddress")
+  billingCarts   Cart[]  @relation("BillingAddress")
+  shippingCarts  Cart[]  @relation("ShippingAddress")
+  billingOrders  Order[] @relation("BillingAddress")
+  shippingOrders Order[] @relation("ShippingAddress")
 
   @@map("addresses")
 }
@@ -122,12 +139,18 @@ model Review {
 }
 
 model Cart {
-  id                String   @id @default(cuid())
-  userId            String   @unique @map("user_id")
-  billingAddressId  String?  @map("billing_address_id")
-  shippingAddressId String?  @map("shipping_address_id")
-  createdAt         DateTime @default(now()) @map("created_at")
-  updatedAt         DateTime @updatedAt @map("updated_at")
+  id                    String   @id @default(cuid())
+  userId                String   @unique @map("user_id")
+  billingAddressId      String?  @map("billing_address_id")
+  shippingAddressId     String?  @map("shipping_address_id")
+  shippingCost          Int?     @map("shipping_cost")
+  courierCompanyId      String?  @map("courier_company_id")
+  estimatedDeliveryDate String?  @map("estimated_delivery_date")
+  subTotal              Int?     @map("sub_total")
+  totalCost             Int?     @map("total_cost")
+  codCharges            Int?     @map("cod_charges")
+  createdAt             DateTime @default(now()) @map("created_at")
+  updatedAt             DateTime @updatedAt @map("updated_at")
 
   user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   billingAddress  Address? @relation("BillingAddress", fields: [billingAddressId], references: [id], onDelete: Cascade)
@@ -153,6 +176,72 @@ model CartItem {
 
   @@unique([cartId, productId, size, color])
   @@map("cart_items")
+}
+
+model Order {
+  id                    String   @id @default(cuid())
+  customOrderId         String   @unique @map("custom_order_id")
+  shipRocketOrderId     String   @unique @map("ship_rocket_order_id")
+  channelOrderId        String   @unique @map("channel_order_id")
+  shipmentId            String   @unique @map("shipment_id")
+  awbCode               String?  @map("awb_code")
+  courierCompanyId      String?  @map("courier_company_id")
+  userId                String   @map("user_id")
+  paymentId             String?  @unique @map("payment_id")
+  billingAddressId      String   @map("billing_address_id")
+  shippingAddressId     String   @map("shipping_address_id")
+  orderDate             DateTime @map("order_date")
+  estimatedDeliveryDate String   @map("estimated_delivery_date")
+  actualDeliveryDate    String?  @map("actual_delivery_date")
+  shippingCost          Int      @map("shipping_cost")
+  codCharges            Int      @map("cod_charges")
+  subTotal              Int      @map("sub_total")
+  totalCost             Int      @map("total_cost")
+  createdAt             DateTime @default(now()) @map("created_at")
+  updatedAt             DateTime @updatedAt @map("updated_at")
+
+  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  payment         Payment? @relation(fields: [paymentId], references: [id])
+  billingAddress  Address? @relation("BillingAddress", fields: [billingAddressId], references: [id], onDelete: Cascade)
+  shippingAddress Address? @relation("ShippingAddress", fields: [shippingAddressId], references: [id], onDelete: Cascade)
+
+  orderItems OrderItem[]
+
+  @@map("orders")
+}
+
+model OrderItem {
+  id        String   @id @default(cuid())
+  productId String   @map("product_id")
+  orderId   String?  @map("order_id")
+  quantity  Int
+  size      String?
+  color     String?
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  product Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+  order   Order?  @relation(fields: [orderId], references: [id], onDelete: Cascade)
+
+  @@unique([orderId, productId, size, color])
+  @@map("order_items")
+}
+
+model Payment {
+  id                String        @id @default(cuid())
+  amount            Float
+  currency          String
+  paymentMethod     PaymentMethod @map("payment_method")
+  paymentStatus     PaymentStatus @default(PENDING) @map("payment_status")
+  razorpayOrderId   String?       @map("razorpay_order_id")
+  razorpayPaymentId String?       @map("razorpay_payment_id")
+  razorpaySignature String?       @map("razorpay_signature")
+  createdAt         DateTime      @default(now()) @map("created_at")
+  updatedAt         DateTime      @updatedAt @map("updated_at")
+
+  order Order?
+
+  @@map("payments")
 }
 
 model Wishlist {
@@ -208,46 +297,6 @@ model CouponUsage {
   createdAt DateTime @default(now()) @map("created_at")
 
   @@map("coupons_us_by")
-}
-
-model Order {
-  id                    String   @id @default(cuid())
-  userId                String   @map("user_id")
-  productId             String?  @map("product_id")
-  billingAddressId      String?  @map("billing_address_id")
-  shippingAddressId     String?  @map("shipping_address_id")
-  orderDate             DateTime @map("order_date")
-  orderId               String   @unique @map("order_id")
-  estimatedDeliveryDate String   @map("estimated_delivery_date")
-  actualDeliveryDate    String   @map("actual_delivery_date")
-  shippingCost          String   @map("shipping_cost")
-  codCharges            String   @map("cod_charges")
-  createdAt             DateTime @default(now()) @map("created_at")
-  updatedAt             DateTime @updatedAt @map("updated_at")
-
-  user    User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  product Product? @relation(fields: [productId], references: [id], onDelete: Cascade)
-
-  orderItems OrderItem[]
-
-  @@map("orders")
-}
-
-model OrderItem {
-  id        String   @id @default(cuid())
-  productId String   @map("product_id")
-  orderId   String?  @map("order_id")
-  quantity  Int
-  size      String?
-  color     String?
-  createdAt DateTime @default(now()) @map("created_at")
-  updatedAt DateTime @updatedAt @map("updated_at")
-
-  product Product @relation(fields: [productId], references: [id], onDelete: Cascade)
-  order   Order?  @relation(fields: [orderId], references: [id], onDelete: Cascade)
-
-  @@unique([orderId, productId, size, color])
-  @@map("order_items")
 }
 
 model Subscribe {

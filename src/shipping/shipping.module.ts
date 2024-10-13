@@ -1,12 +1,16 @@
 import { HttpModule } from '@nestjs/axios';
 import { forwardRef, Module } from '@nestjs/common';
-import { CartService } from 'src/module/customer/cart/cart.service';
+import { CartModule } from 'src/module/customer/cart/cart.module';
+import { OrderModule } from 'src/module/customer/order/order.module';
 import { ShippingController } from './shipping.controller';
 import { ShippingService } from './shipping.service';
-import { CartModule } from 'src/module/customer/cart/cart.module';
 
 @Module({
-  imports: [HttpModule, forwardRef(() => CartModule)],
+  imports: [
+    HttpModule,
+    forwardRef(() => CartModule),
+    forwardRef(() => OrderModule),
+  ],
   controllers: [ShippingController],
   providers: [ShippingService],
   exports: [ShippingService],

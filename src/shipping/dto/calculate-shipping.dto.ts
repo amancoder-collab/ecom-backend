@@ -1,12 +1,14 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsNumber, IsString } from 'class-validator';
+import { IsIn, IsNotEmpty, IsNumber, IsString } from 'class-validator';
 
 export class CalculateShippingDto {
   @ApiProperty()
-  @IsString()
-  delivery_postcode: string;
+  @IsNumber()
+  @IsNotEmpty()
+  delivery_postcode: number;
 
   @ApiProperty()
-  @IsNumber()
-  cod: number;
+  @IsNotEmpty()
+  @IsIn([0, 1])
+  cod: 0 | 1;
 }
