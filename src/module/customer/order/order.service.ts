@@ -1,10 +1,15 @@
-import { forwardRef, Inject, Injectable } from '@nestjs/common';
+import {
+  forwardRef,
+  Inject,
+  Injectable,
+  InternalServerErrorException,
+} from '@nestjs/common';
 import { Cart, CartItem, Product } from '@prisma/client';
 import { PrismaService } from 'src/module/prisma/prisma.service';
 import { CreateShipRocketOrderDto } from 'src/shipping/dto/create-order.dto';
+import { ICreateShipRocketOrderResponse } from 'src/shipping/interface/shiprocket-responses';
 import { ShippingService } from 'src/shipping/shipping.service';
 import { CartService } from '../cart/cart.service';
-import { CreateOrderDto } from './dto/create-order.dto';
 
 @Injectable()
 export class OrderService {
@@ -85,10 +90,105 @@ export class OrderService {
   }
 
   async createOrder(userId: string) {
-    const locations = await this.shippingService.getAllPickupLocations();
+    return this.prismaService.$transaction(async (prisma) => {
+      let shipRocketOrder: ICreateShipRocketOrderResponse | null = null;
+      try {
+        const locations = await this.shippingService.getAllPickupLocations();
 
-    const cart = await this.cartService.findByUserId(userId);
+        const cart = await this.cartService.findByUserId(userId);
 
+        const shipRocketOrderData = await this.prepareShipRocketOrderData(
+          cart,
+          locations,
+        );
+
+        shipRocketOrder =
+          await this.shippingService.createShipRocketOrder(shipRocketOrderData);
+
+        const awbNumber = await this.shippingService.generateAWBNumber({
+          shipmentId: shipRocketOrder.shipment_id,
+          courierId: cart?.courierCompanyId,
+        });
+
+        console.log('awbNumber', awbNumber);
+
+        await this.shippingService.schedulePickup({
+          shipmentId: shipRocketOrder.shipment_id,
+        });
+
+        const order = await this.createOrderInDatabase(
+          userId,
+          cart,
+          shipRocketOrder,
+          awbNumber,
+        );
+
+        return order;
+      } catch (error) {
+        if (shipRocketOrder) {
+          try {
+            const response = await this.shippingService.cancelOrder({
+              ids: [shipRocketOrder.order_id],
+            });
+            console.log('response', response);
+          } catch (cancelError) {
+            console.error('Failed to cancel ShipRocket order:', cancelError);
+          }
+        }
+        throw new InternalServerErrorException(
+          `Failed to create order: ${error?.response?.data ?? error.message}`,
+        );
+      }
+    });
+  }
+
+  private async createOrderInDatabase(
+    userId: string,
+    cart: any,
+    shipRocketOrder: any,
+    awbNumber: any,
+  ) {
+    return this.prismaService.order.create({
+      data: {
+        shipRocketOrderId: shipRocketOrder.order_id,
+        courierCompanyId: cart?.courierCompanyId,
+        shipmentId: shipRocketOrder.shipment_id,
+        awbCode: awbNumber.awbNumber,
+        customOrderId: shipRocketOrder.order_id,
+        orderDate: new Date(),
+        estimatedDeliveryDate: cart?.estimatedDeliveryDate,
+        shippingCost: cart?.shippingCost,
+        codCharges: cart?.codCharges ?? 0,
+        subTotal: cart?.subTotal,
+        totalCost: cart?.totalCost,
+        user: { connect: { id: userId } },
+        billingAddress: { connect: { id: cart?.billingAddressId } },
+        shippingAddress: { connect: { id: cart?.shippingAddressId } },
+        orderItems: {
+          createMany: {
+            data: cart?.cartItems.map((item) => ({
+              productId: item.productId,
+              quantity: item.quantity,
+              size: item.size,
+              color: item.color,
+            })),
+          },
+        },
+      },
+      include: {
+        billingAddress: true,
+        shippingAddress: true,
+        orderItems: true,
+        user: true,
+        payment: true,
+      },
+    });
+  }
+
+  private async prepareShipRocketOrderData(
+    cart: any,
+    locations: any,
+  ): Promise<CreateShipRocketOrderDto> {
     const dimensions = this.calculateLargestItemDimensions(cart);
 
     const shipRocketOrderData: CreateShipRocketOrderDto = {
@@ -139,57 +239,6 @@ export class OrderService {
       shipRocketOrderData.shipping_phone = cart?.shippingAddress?.phone;
     }
 
-    const shipRocketOrder =
-      await this.shippingService.createShipRocketOrder(shipRocketOrderData);
-
-    const order = await this.prismaService.order.create({
-      data: {
-        shipRocketOrderId: shipRocketOrder.order_id,
-        channelOrderId: shipRocketOrder.channel_order_id,
-        shipmentId: shipRocketOrder.shipment_id,
-        customOrderId: shipRocketOrderData.order_id,
-        orderDate: shipRocketOrderData.order_date,
-        estimatedDeliveryDate: cart?.estimatedDeliveryDate,
-        shippingCost: cart?.shippingCost,
-        codCharges: cart?.codCharges ?? 0,
-        subTotal: cart?.subTotal,
-        totalCost: cart?.totalCost,
-        user: {
-          connect: {
-            id: userId,
-          },
-        },
-        billingAddress: {
-          connect: {
-            id: cart?.billingAddressId,
-          },
-        },
-        shippingAddress: {
-          connect: {
-            id: cart?.shippingAddressId,
-          },
-        },
-        orderItems: {
-          createMany: {
-            data: cart?.cartItems.map((item) => ({
-              productId: item.productId,
-              quantity: item.quantity,
-              size: item.size,
-              color: item.color,
-            })),
-          },
-        },
-      },
-      include: {
-        billingAddress: true,
-        shippingAddress: true,
-        orderItems: true,
-        user: true,
-        payment: true,
-      },
-    });
-
-    console.log('ship rocket order', shipRocketOrder);
-    return order;
+    return shipRocketOrderData;
   }
 }

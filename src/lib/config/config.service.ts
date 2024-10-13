@@ -127,4 +127,16 @@ export class AppConfigService {
   get razorpayKeySecret() {
     return this.get<string>('app.razorpayKeySecret');
   }
+
+  get shiprocketApiUrl() {
+    return this.get<string>('app.shiprocketApiUrl');
+  }
+
+  get shiprocketEmail() {
+    return this.get<string>('app.shiprocketEmail');
+  }
+
+  get shiprocketPassword() {
+    return this.get<string>('app.shiprocketPassword');
+  }
 }

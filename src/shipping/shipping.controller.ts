@@ -4,8 +4,8 @@ import { User } from '@prisma/client';
 import { CurrentUser } from 'src/module/customer/auth/decorators/get-current-user.decorator';
 import { JwtAuthGuard } from 'src/module/customer/auth/guards/jwt-auth.guard';
 import { CalculateShippingDto } from './dto/calculate-shipping.dto';
-import { GetCouriersDto } from './dto/get-couriers.dto';
 import { ShippingService } from './shipping.service';
+import { IPickupLocationsResponse } from './interface/shiprocket-responses';
 
 @ApiTags('Customer Shipping')
 @UseGuards(JwtAuthGuard)
@@ -14,8 +14,8 @@ export class ShippingController {
   constructor(private readonly shippingService: ShippingService) {}
 
   @Get('pickup-locations')
-  async getAllPickupLocations() {
-    return this.shippingService.getAllPickupLocations();
+  async getAllPickupLocations(): Promise<IPickupLocationsResponse['data']> {
+    return await this.shippingService.getAllPickupLocations();
   }
 
   @Post('charges/:cartId')
@@ -26,11 +26,6 @@ export class ShippingController {
   ) {
     console.log('User ', user);
     return this.shippingService.getCharges(user.id, cartId, data);
-  }
-
-  @Post('get-available-couriers')
-  async getAvailableCouriers(@Body() dto: GetCouriersDto) {
-    return this.shippingService.getAvailableCouriers(dto);
   }
 
   @Get('validate-pincode/:pincode')
