@@ -23,12 +23,13 @@ import { AddProductDto } from './dto/product.dto';
 import { UpdateProductDto } from './dto/update.product.dto';
 import { ProductsService } from './products.service';
 import { JwtAuthGuard } from 'src/module/customer/auth/guards/jwt-auth.guard';
-import { Role } from '@prisma/client';
+import { Product, Role } from '@prisma/client';
 import { Roles } from 'src/common/decorator/role.decorator';
 import { RolesGuard } from 'src/common/guard/role.guard';
+import { PaginateQueryDto } from 'src/lib/pagination/dto/paginate-query.dto';
+import { Paginate } from 'src/lib/pagination/paginate';
 
 @Controller('admin/products')
-@ApiBearerAuth()
 @UseGuards(JwtAuthGuard, RolesGuard)
 @Roles(Role.SELLER)
 @ApiTags('Admin Products')
@@ -49,24 +50,15 @@ export class ProductsController {
     description: ApiError.BAD_REQUEST,
   })
   @ApiOperation({
-    summary: 'Get product by USER and SELLER',
-    description: 'Get product by USER and SELLER',
+    summary: 'Get all products',
+    description: 'Get all products',
   })
-  @ApiQuery({
-    name: 'page',
-    description: 'Type of customer details to fetch',
-    required: false,
-  })
-  @ApiQuery({
-    name: 'limit',
-    description: 'Type of customer details to fetch',
-    required: false,
-  })
-  async getListOfProducts(
-    @Query('page') page: number = 1,
-    @Query('limit') limit: number = 10,
-  ) {
-    return this.productService.getListProduct(page, limit);
+  async getAllProducts(@Query() query: PaginateQueryDto) {
+    const paginate = new Paginate<Product>(query);
+    const { data, total } = await this.productService.findAll(
+      paginate.params(),
+    );
+    return paginate.response(data, total);
   }
 
   @Post()

@@ -70,7 +70,6 @@ model Product {
   name            String
   sku             String
   description     String
-  quantity        Int
   priceWithoutTax Int
   weight          Float
   breadth         Float
@@ -90,10 +89,10 @@ model Product {
 
   seller User? @relation(fields: [sellerId], references: [id], onDelete: Cascade)
 
-  reviews   Review[]
-  wishlists Wishlist[]
-  CartItem  CartItem[]
-  OrderItem OrderItem[]
+  reviews    Review[]
+  wishlists  Wishlist[]
+  cartItems  CartItem[]
+  orderItems OrderItem[]
 
   @@index([priceWithoutTax, name, discountedPrice])
   @@map("products")

@@ -19,25 +19,25 @@ export class PaginateQueryDto {
   @IsOptional()
   limit?: number;
 
-  // @ApiProperty({
-  //   required: false,
-  //   example: 'createdAt:desc',
-  // })
-  // @IsOptional()
-  // @IsString()
-  // sort?: string;
+  @ApiProperty({
+    required: false,
+    example: 'createdAt:desc',
+  })
+  @IsOptional()
+  @IsString()
+  sort?: string;
 
-  // @ApiProperty({
-  //   required: false,
-  // })
-  // @IsOptional()
-  // @IsString()
-  // searchFields?: string;
+  @ApiProperty({
+    required: false,
+  })
+  @IsOptional()
+  @IsString()
+  searchFields?: string;
 
-  // @ApiProperty({
-  //   required: false,
-  // })
-  // @IsOptional()
-  // @IsString()
-  // search?: string;
+  @ApiProperty({
+    required: false,
+  })
+  @IsOptional()
+  @IsString()
+  search?: string;
 }

@@ -5,6 +5,7 @@ import { UpdateProductDto } from './dto/update.product.dto';
 import { ClientLogError } from 'src/common/helper/error_description';
 import { Operation } from 'src/common/operations/operation.function';
 import { Role } from '@prisma/client';
+import { Pagination } from 'src/lib/pagination/paginate';
 
 @Injectable()
 export class ProductsService {
@@ -33,7 +34,6 @@ export class ProductsService {
           height: dto.height,
           length: dto.length,
           description: dto.productDescription,
-          quantity: dto.quantities,
           priceWithoutTax: dto.priceWithoutGst,
           tax: dto.gst,
           discountedPrice: dto.discountedPrices,
@@ -121,16 +121,23 @@ export class ProductsService {
     });
   }
 
-  async getListProduct(page: number, limit: number) {
-    const { skip, take } = this.operation.calculatePagination(page, limit);
-    const result = await this.prismaService.product.findMany({
-      skip,
-      take,
-      where: {
-        isLive: true,
-      },
-    });
-    return result;
+  async findAll(params: Pagination) {
+    const [data, total] = await this.prismaService.$transaction([
+      this.prismaService.product.findMany({
+        ...params,
+        where: {
+          ...params.where,
+          isLive: true,
+        },
+      }),
+      this.prismaService.product.count({
+        where: {
+          ...params.where,
+          isLive: true,
+        },
+      }),
+    ]);
+    return { data, total };
   }
 
   async getListProductForSeller(page: number, limit: number) {
