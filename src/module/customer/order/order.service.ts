@@ -4,7 +4,7 @@ import {
   Injectable,
   InternalServerErrorException,
 } from '@nestjs/common';
-import { Cart, CartItem, Product } from '@prisma/client';
+import { Cart, CartItem, Product, ProductVariant } from '@prisma/client';
 import { PrismaService } from 'src/module/prisma/prisma.service';
 import { CreateShipRocketOrderDto } from 'src/shipping/dto/create-order.dto';
 import { ICreateShipRocketOrderResponse } from 'src/shipping/interface/shiprocket-responses';
@@ -45,12 +45,12 @@ export class OrderService {
     let largest = { length: 0, breadth: 0, height: 0 };
     let totalWeight = 0;
 
-    cart?.cartItems.forEach((item: CartItem & { product: Product }) => {
-      const product = item.product;
-      largest.length = Math.max(largest.length, product?.length ?? 0);
-      largest.breadth = Math.max(largest.breadth, product?.breadth ?? 0);
-      largest.height = Math.max(largest.height, product?.height ?? 0);
-      totalWeight += (product?.weight ?? 0) * item.quantity;
+    cart?.cartItems.forEach((item: CartItem & { variant: ProductVariant }) => {
+      const variant = item.variant;
+      largest.length = Math.max(largest.length, variant?.length ?? 0);
+      largest.breadth = Math.max(largest.breadth, variant?.breadth ?? 0);
+      largest.height = Math.max(largest.height, variant?.height ?? 0);
+      totalWeight += (variant?.weight ?? 0) * item.quantity;
     });
 
     return { ...largest, weight: totalWeight };

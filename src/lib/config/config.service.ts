@@ -104,22 +104,6 @@ export class AppConfigService {
     return this.get<number>('app.port');
   }
 
-  get smtpPassword() {
-    return this.get<string>('app.smtpPassword');
-  }
-
-  get smtpUsername() {
-    return this.get<string>('app.smtpUsername');
-  }
-
-  get smtpPort() {
-    return this.get<string>('app.smtpPort');
-  }
-
-  get smtpHost() {
-    return this.get<string>('app.smtpHostname');
-  }
-
   get razorpayKeyId() {
     return this.get<string>('app.razorpayKeyId');
   }
@@ -138,5 +122,17 @@ export class AppConfigService {
 
   get shiprocketPassword() {
     return this.get<string>('app.shiprocketPassword');
+  }
+
+  get cloudinaryCloudName() {
+    return this.get<string>('app.cloudinaryCloudName');
+  }
+
+  get cloudinaryApiKey() {
+    return this.get<string>('app.cloudinaryApiKey');
+  }
+
+  get cloudinaryApiSecret() {
+    return this.get<string>('app.cloudinaryApiSecret');
   }
 }

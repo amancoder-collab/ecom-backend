@@ -21,16 +21,16 @@ import { AppConfigService } from 'src/lib/config/config.service';
 import { JwtAuthGuard } from './guards/jwt-auth.guard';
 import { Public } from './decorators/public';
 
-@Controller('auth')
+@Controller('customer/auth')
 @UseGuards(JwtAuthGuard)
-@ApiTags('Authentication')
+@ApiTags('Customer Auth')
 export class AuthController {
   constructor(
     private readonly authService: AuthService,
     private readonly configService: AppConfigService,
   ) {}
 
-  @Post('signup')
+  @Post('register')
   @Public()
   @ApiResponse({
     status: HttpStatus.OK,

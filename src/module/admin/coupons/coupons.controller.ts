@@ -60,7 +60,7 @@ export class CouponsController {
   @Post()
   @ApiBearerAuth()
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles(Role.SELLER)
+  @Roles(Role.ADMIN)
   @ApiResponse({
     status: HttpStatus.OK,
     description: ApiError.SUCCESS_MESSAGE,
@@ -117,7 +117,7 @@ export class CouponsController {
   @Delete(':id')
   @ApiBearerAuth()
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles(Role.SELLER)
+  @Roles(Role.ADMIN)
   @ApiResponse({
     status: HttpStatus.OK,
     description: ApiError.SUCCESS_MESSAGE,

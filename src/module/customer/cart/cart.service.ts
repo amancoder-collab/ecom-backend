@@ -41,14 +41,6 @@ export class CartService {
         throw new BadRequestException(ClientLogError.QUANTITY_CANT_BE_ZERO);
       }
 
-      if (!existingProduct.sizes.includes(dto.size)) {
-        throw new BadRequestException('Invalid size for this product');
-      }
-
-      if (!existingProduct.colors.includes(dto.color)) {
-        throw new BadRequestException('Invalid color for this product');
-      }
-
       const existingCart = await prisma.cart.findFirst({
         where: {
           id: cartId,
@@ -63,8 +55,6 @@ export class CartService {
         where: {
           cartId: cartId,
           productId: dto.productId,
-          size: dto.size,
-          color: dto.color,
         },
       });
 
@@ -94,10 +84,9 @@ export class CartService {
           data: {
             cartItems: {
               create: {
+                variantId: dto.variantId,
                 quantity: dto.quantity,
                 productId: dto.productId,
-                size: dto.size,
-                color: dto.color,
               },
             },
           },
@@ -200,6 +189,7 @@ export class CartService {
         cartItems: {
           include: {
             product: true,
+            variant: true,
           },
         },
         billingAddress: true,

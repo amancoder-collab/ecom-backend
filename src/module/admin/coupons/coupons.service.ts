@@ -7,6 +7,7 @@ import { PrismaService } from 'src/module/prisma/prisma.service';
 import { CreateCouponDto } from './dto/create-coupon.dto';
 import { ClientLogError } from 'src/common/helper/error_description';
 import { ApplyCouponDto } from './dto/coupons.apply.dto';
+import { Role } from '@prisma/client';
 
 @Injectable()
 export class CouponsService {
@@ -31,7 +32,7 @@ export class CouponsService {
       const seller = await prisma.user.findFirst({
         where: {
           id: sellerId,
-          role: 'SELLER',
+          role: Role.ADMIN,
         },
         select: { id: true },
       });
@@ -137,7 +138,7 @@ export class CouponsService {
     const seller = await this.prisma.user.findFirst({
       where: {
         id: sellerId,
-        role: 'SELLER',
+        role: Role.ADMIN,
       },
       select: { id: true },
     });

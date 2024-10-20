@@ -59,7 +59,7 @@ export class SubscribeController {
   @Get()
   @ApiBearerAuth()
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles(Role.SELLER)
+  @Roles(Role.ADMIN)
   @ApiResponse({
     status: HttpStatus.OK,
     description: ApiError.SUCCESS_MESSAGE,
@@ -105,7 +105,7 @@ export class SubscribeController {
   @Delete(':id')
   @ApiBearerAuth()
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles(Role.SELLER)
+  @Roles(Role.ADMIN)
   @ApiResponse({
     status: HttpStatus.OK,
     description: ApiError.SUCCESS_MESSAGE,

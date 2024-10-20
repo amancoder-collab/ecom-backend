@@ -28,6 +28,7 @@ export class ProductService {
               lastName: true,
             },
           },
+          variants: true,
         },
       }),
       this.prisma.product.count(),
@@ -55,6 +56,7 @@ export class ProductService {
             lastName: true,
           },
         },
+        variants: true,
         reviews: true,
       },
     });

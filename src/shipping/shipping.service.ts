@@ -81,7 +81,7 @@ export class ShippingService {
       const cart = await this.cartService.findById(cartId);
 
       const weight = cart?.cartItems?.reduce((acc, product) => {
-        return acc + product.product.weight * product.quantity;
+        return acc + product.variant.weight * product.quantity;
       }, 0);
 
       const subTotal = cart?.cartItems?.reduce((acc, product) => {
