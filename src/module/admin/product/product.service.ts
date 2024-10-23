@@ -1,7 +1,10 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { Role } from '@prisma/client';
 import { ClientLogError } from 'src/common/helper/error_description';
-import { Operation } from 'src/common/operations/operation.function';
 import { Pagination } from 'src/lib/pagination/paginate';
 import { PrismaService } from 'src/module/prisma/prisma.service';
 import { CreateProductDto } from './dto/create-product.dto';
@@ -9,10 +12,7 @@ import { UpdateProductDto } from './dto/update-product.dto';
 
 @Injectable()
 export class ProductService {
-  constructor(
-    private readonly prismaService: PrismaService,
-    private readonly operation: Operation,
-  ) {}
+  constructor(private readonly prismaService: PrismaService) {}
 
   async create(dto: CreateProductDto, sellerId: string) {
     const seller = await this.prismaService.user.findFirst({
@@ -26,15 +26,51 @@ export class ProductService {
       throw new NotFoundException(ClientLogError.ONLY_SELLER);
     }
 
+    if (!dto.variants || dto.variants.length === 0) {
+      if (!dto.weight) {
+        throw new BadRequestException(
+          'Weight is required when no variants are provided',
+        );
+      }
+
+      if (!dto.width) {
+        throw new BadRequestException(
+          'Width is required when no variants are provided',
+        );
+      }
+
+      if (!dto.height) {
+        throw new BadRequestException(
+          'Height is required when no variants are provided',
+        );
+      }
+
+      if (!dto.length) {
+        throw new BadRequestException(
+          'Length is required when no variants are provided',
+        );
+      }
+
+      if (!dto.thumbnail || !dto.images || dto.images.length === 0) {
+        throw new BadRequestException(
+          'Thumbnail and images are required when no variants are provided',
+        );
+      }
+    }
+
     return await this.prismaService.$transaction(async (prisma) => {
       const product = await this.prismaService.product.create({
         data: {
           name: dto.name,
           description: dto.description,
           price: dto.price,
-          tax: dto.tax,
           discountedPrice: dto.discountedPrice,
+          weight: dto.weight,
+          width: dto.width,
+          height: dto.height,
+          length: dto.length,
           thumbnail: dto.thumbnail,
+          images: dto.images,
           seller: {
             connect: {
               id: sellerId,
@@ -54,7 +90,7 @@ export class ProductService {
               },
               sku: variant.sku,
               weight: variant.weight,
-              breadth: variant.breadth,
+              width: variant.width,
               height: variant.height,
               length: variant.length,
               thumbnail: variant.thumbnail,
@@ -120,7 +156,6 @@ export class ProductService {
         name: dto.name,
         description: dto.description,
         price: dto.price,
-        tax: dto.tax,
         discountedPrice: dto.discountedPrice,
         thumbnail: dto.thumbnail,
         variants: {
@@ -222,7 +257,11 @@ export class ProductService {
             },
           },
         },
-        attributes: true,
+        attributes: {
+          include: {
+            values: true,
+          },
+        },
       },
     });
 

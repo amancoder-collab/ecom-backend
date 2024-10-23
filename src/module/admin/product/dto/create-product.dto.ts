@@ -4,6 +4,7 @@ import {
   IsArray,
   IsNotEmpty,
   IsNumber,
+  IsOptional,
   IsString,
   ValidateNested,
 } from 'class-validator';
@@ -30,11 +31,11 @@ export class VariantDto {
 
   @ApiProperty({
     example: 100,
-    description: 'The breadth of the variant',
+    description: 'The width of the variant',
   })
   @IsNumber()
   @IsNotEmpty()
-  breadth: number;
+  width: number;
 
   @ApiProperty({
     example: 100,
@@ -65,7 +66,6 @@ export class VariantDto {
     description: 'The thumbnail of the variant',
   })
   @IsString()
-  @IsNotEmpty()
   thumbnail: string;
 
   @ApiProperty({
@@ -95,6 +95,7 @@ export class CreateProductDto {
     description: 'red t-shirt',
   })
   @IsString()
+  @IsNotEmpty()
   name: string;
 
   @ApiProperty({
@@ -102,13 +103,53 @@ export class CreateProductDto {
     description: 'red silky shirt',
   })
   @IsString()
+  @IsNotEmpty()
   description: string;
+
+  @ApiProperty({
+    example: 100,
+    description: 'The weight of the product',
+  })
+  @IsNumber()
+  @IsOptional()
+  weight?: number;
+
+  @ApiProperty({
+    description: 'The width of the product',
+  })
+  @IsNumber()
+  @IsOptional()
+  width?: number;
+
+  @ApiProperty({
+    description: 'The height of the product',
+  })
+  @IsNumber()
+  @IsOptional()
+  height?: number;
+
+  @ApiProperty({
+    description: 'The length of the product',
+  })
+  @IsNumber()
+  @IsOptional()
+  length?: number;
 
   @ApiProperty({
     description: 'thumbnail of product',
   })
   @IsString()
-  thumbnail: string;
+  @IsOptional()
+  thumbnail?: string;
+
+  @ApiProperty({
+    type: [String],
+    description: 'images of product',
+  })
+  @IsArray()
+  @IsString({ each: true })
+  @IsOptional()
+  images?: string[];
 
   @ApiProperty({
     example: 1599,
@@ -116,13 +157,6 @@ export class CreateProductDto {
   })
   @IsNumber()
   price: number;
-
-  @ApiProperty({
-    example: 18,
-    description: 'priceWithoutGst of product',
-  })
-  @IsNumber()
-  tax: number;
 
   @ApiProperty({
     example: 1299,
@@ -138,5 +172,16 @@ export class CreateProductDto {
   @IsArray()
   @ValidateNested({ each: true })
   @Type(() => VariantDto)
-  variants: VariantDto[];
+  @IsOptional()
+  variants?: VariantDto[];
+
+  @ApiProperty({
+    description: 'attributes of product',
+    type: [CreateProductAttributeDto],
+  })
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => CreateProductAttributeDto)
+  @IsOptional()
+  attributes?: CreateProductAttributeDto[];
 }

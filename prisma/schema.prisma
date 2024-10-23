@@ -74,8 +74,8 @@ model Product {
   width           Float?
   height          Float?
   length          Float?
-  tax             Int
   thumbnail       String
+  images          String[]
   discountedPrice Int      @map("descounted_price")
   specification   Json?
   isLive          Boolean  @default(true) @map("is_live")

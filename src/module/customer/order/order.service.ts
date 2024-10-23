@@ -42,13 +42,13 @@ export class OrderService {
   private calculateLargestItemDimensions(
     cart: Cart & { cartItems: CartItem[] },
   ) {
-    let largest = { length: 0, breadth: 0, height: 0 };
+    let largest = { length: 0, width: 0, height: 0 };
     let totalWeight = 0;
 
     cart?.cartItems.forEach((item: CartItem & { variant: ProductVariant }) => {
       const variant = item.variant;
       largest.length = Math.max(largest.length, variant?.length ?? 0);
-      largest.breadth = Math.max(largest.breadth, variant?.breadth ?? 0);
+      largest.width = Math.max(largest.width, variant?.width ?? 0);
       largest.height = Math.max(largest.height, variant?.height ?? 0);
       totalWeight += (variant?.weight ?? 0) * item.quantity;
     });
@@ -220,7 +220,7 @@ export class OrderService {
         return acc + product.product.discountedPrice * product.quantity;
       }, 0),
       length: dimensions.length,
-      breadth: dimensions.breadth,
+      breadth: dimensions.width,
       weight: dimensions.weight,
       height: dimensions.height,
     };
