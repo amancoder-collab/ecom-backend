@@ -22,6 +22,8 @@ import { JwtAuthGuard } from 'src/module/customer/auth/guards/jwt-auth.guard';
 import { CreateProductDto } from './dto/create-product.dto';
 import { UpdateProductDto } from './dto/update-product.dto';
 import { ProductService } from './product.service';
+import { CreateVariantDto } from './dto/create-variant.dto';
+import { UpdateVariantDto } from './dto/update-variant.dto';
 
 @Controller('admin/product')
 @UseGuards(JwtAuthGuard, RolesGuard)
@@ -53,6 +55,23 @@ export class ProductController {
       paginate.params(),
     );
     return paginate.response(data, total);
+  }
+
+  @Get('variant/:id')
+  @ApiResponse({
+    status: HttpStatus.OK,
+    description: ApiError.SUCCESS_MESSAGE,
+  })
+  @ApiResponse({
+    status: HttpStatus.UNAUTHORIZED,
+    description: ApiError.UNAUTHORIZED_MESSAGE,
+  })
+  @ApiResponse({
+    status: HttpStatus.INTERNAL_SERVER_ERROR,
+    description: ApiError.INTERNAL_SERVER_ERROR_MESSAGE,
+  })
+  async getVariantById(@Param('id') variantId: string) {
+    return this.productService.getVariantById(variantId);
   }
 
   @Get(':id')
@@ -92,6 +111,23 @@ export class ProductController {
   async create(@Body() dto: CreateProductDto, @Request() req) {
     const AdminId = req.user.id;
     return this.productService.create(dto, AdminId);
+  }
+
+  @Post(':productId/variant')
+  async createVariant(
+    @Body() dto: CreateVariantDto,
+    @Param('productId') productId: string,
+  ) {
+    return this.productService.createVariant(dto, productId);
+  }
+
+  @Patch(':productId/variant/:variantId')
+  async updateVariant(
+    @Body() dto: UpdateVariantDto,
+    @Param('productId') productId: string,
+    @Param('variantId') variantId: string,
+  ) {
+    return this.productService.updateVariant(dto, variantId, productId);
   }
 
   @Patch(':id')
@@ -148,6 +184,27 @@ export class ProductController {
   async deactivateProduct(@Param('id') productId: string, @Request() req) {
     const AdminId = req.user.id;
     return this.productService.deactivateProduct(AdminId, productId);
+  }
+
+  @Delete('variant/:id')
+  @ApiResponse({
+    status: HttpStatus.OK,
+    description: ApiError.SUCCESS_MESSAGE,
+  })
+  @ApiResponse({
+    status: HttpStatus.UNAUTHORIZED,
+    description: ApiError.UNAUTHORIZED_MESSAGE,
+  })
+  @ApiResponse({
+    status: HttpStatus.INTERNAL_SERVER_ERROR,
+    description: ApiError.INTERNAL_SERVER_ERROR_MESSAGE,
+  })
+  @ApiResponse({
+    status: HttpStatus.BAD_REQUEST,
+    description: ApiError.BAD_REQUEST,
+  })
+  async deleteVariant(@Param('id') variantId: string) {
+    return this.productService.deleteVariantById(variantId);
   }
 
   @Delete(':id')

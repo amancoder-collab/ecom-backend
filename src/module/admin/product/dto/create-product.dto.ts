@@ -2,6 +2,7 @@ import { ApiProperty } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
 import {
   IsArray,
+  IsBoolean,
   IsNotEmpty,
   IsNumber,
   IsOptional,
@@ -55,6 +56,30 @@ export class VariantDto {
 
   @ApiProperty({
     example: 100,
+    description: 'The price of the variant',
+  })
+  @IsNumber()
+  @IsNotEmpty()
+  price: number;
+
+  @ApiProperty({
+    example: 100,
+    description: 'The discounted price of the variant',
+  })
+  @IsNumber()
+  @IsOptional()
+  discountedPrice?: number;
+
+  @ApiProperty({
+    example: true,
+    description: 'Whether the variant is active',
+  })
+  @IsBoolean()
+  @IsOptional()
+  isActive?: boolean;
+
+  @ApiProperty({
+    example: 100,
     description: 'The stock of the variant',
   })
   @IsNumber()
@@ -103,8 +128,24 @@ export class CreateProductDto {
     description: 'red silky shirt',
   })
   @IsString()
+  @IsOptional()
+  description?: string;
+
+  @ApiProperty({
+    example: true,
+    description: 'Whether the product is active',
+  })
+  @IsBoolean()
+  @IsOptional()
+  isActive?: boolean;
+
+  @ApiProperty({
+    example: true,
+    description: 'Whether the product has variants',
+  })
+  @IsBoolean()
   @IsNotEmpty()
-  description: string;
+  hasVariants: boolean;
 
   @ApiProperty({
     example: 100,
@@ -136,6 +177,14 @@ export class CreateProductDto {
   length?: number;
 
   @ApiProperty({
+    example: 100,
+    description: 'The stock of the product',
+  })
+  @IsNumber()
+  @IsOptional()
+  stock?: number;
+
+  @ApiProperty({
     description: 'thumbnail of product',
   })
   @IsString()
@@ -156,14 +205,16 @@ export class CreateProductDto {
     description: 'priceWithoutTax of product',
   })
   @IsNumber()
-  price: number;
+  @IsOptional()
+  price?: number;
 
   @ApiProperty({
     example: 1299,
     description: 'discountedPrice of product',
   })
   @IsNumber()
-  discountedPrice: number;
+  @IsOptional()
+  discountedPrice?: number;
 
   @ApiProperty({
     description: 'variants of product',

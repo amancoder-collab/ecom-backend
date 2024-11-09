@@ -1,6 +1,7 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { Operation } from 'src/common/operations/operation.function';
 import { PaginateQueryDto } from 'src/lib/pagination/dto/paginate-query.dto';
+import { Pagination } from 'src/lib/pagination/paginate';
 import { PrismaService } from 'src/module/prisma/prisma.service';
 
 @Injectable()
@@ -10,16 +11,14 @@ export class ProductService {
     private operation: Operation,
   ) {}
 
-  async getAllProducts(query: PaginateQueryDto) {
-    const page = query.page || 1;
-    const limit = query.limit || 10;
-
-    const { skip, take } = this.operation.calculatePagination(page, limit);
-
+  async getAllProducts(params: Pagination) {
     const [products, total] = await Promise.all([
       this.prisma.product.findMany({
-        skip,
-        take,
+        ...params,
+        where: {
+          ...params.where,
+          isActive: true,
+        },
         include: {
           seller: {
             select: {
@@ -31,17 +30,17 @@ export class ProductService {
           variants: true,
         },
       }),
-      this.prisma.product.count(),
+      this.prisma.product.count({
+        where: {
+          ...params.where,
+          isActive: true,
+        },
+      }),
     ]);
 
     return {
       data: products,
-      meta: {
-        total,
-        page,
-        limit,
-        totalPages: Math.ceil(total / limit),
-      },
+      total,
     };
   }
 
@@ -56,7 +55,20 @@ export class ProductService {
             lastName: true,
           },
         },
-        variants: true,
+        variants: {
+          include: {
+            attributeValues: {
+              include: {
+                attribute: true,
+              },
+            },
+          },
+        },
+        attributes: {
+          include: {
+            values: true,
+          },
+        },
         reviews: true,
       },
     });

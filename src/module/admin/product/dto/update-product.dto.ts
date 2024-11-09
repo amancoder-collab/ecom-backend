@@ -8,15 +8,27 @@ import {
   IsString,
   ValidateNested,
 } from 'class-validator';
+import {
+  CreateProductAttributeDto,
+  CreateProductAttributeValueDto,
+} from '../../product-attribute/dto/create-product-attribute.dto';
 
 class UpdateVariantDto {
-  @IsNotEmpty()
+  @IsOptional()
   @IsString()
-  id: string;
+  id?: string;
 
   @IsOptional()
   @IsString()
   sku?: string;
+
+  @IsOptional()
+  @IsNumber()
+  price?: number;
+
+  @IsOptional()
+  @IsNumber()
+  discountedPrice?: number;
 
   @IsOptional()
   @IsString()
@@ -32,7 +44,7 @@ class UpdateVariantDto {
 
   @IsOptional()
   @IsNumber()
-  breadth?: number;
+  width?: number;
 
   @IsOptional()
   @IsNumber()
@@ -47,9 +59,19 @@ class UpdateVariantDto {
   stock?: number;
 
   @IsOptional()
+  @IsString()
+  thumbnail?: string;
+
+  @IsOptional()
   @IsArray()
   @IsString({ each: true })
   images?: string[];
+
+  @IsOptional()
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => CreateProductAttributeValueDto)
+  attributes?: CreateProductAttributeValueDto[];
 }
 
 export class UpdateProductDto {
@@ -69,12 +91,39 @@ export class UpdateProductDto {
   thumbnail?: string;
 
   @IsOptional()
+  @IsArray()
+  @IsString({ each: true })
+  images?: string[];
+
+  @IsOptional()
   @IsNumber()
   price?: number;
 
   @IsOptional()
   @IsNumber()
   tax?: number;
+
+  @IsOptional()
+  @IsNumber()
+  weight?: number;
+
+  @IsOptional()
+  @IsNumber()
+  width?: number;
+
+  @IsOptional()
+  @IsNumber()
+  height?: number;
+
+  @IsOptional()
+  @IsNumber()
+  length?: number;
+
+  @IsOptional()
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => CreateProductAttributeDto)
+  attributes?: CreateProductAttributeDto[];
 
   @IsOptional()
   @IsNumber()

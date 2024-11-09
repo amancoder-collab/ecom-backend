@@ -68,17 +68,18 @@ model User {
 model Product {
   id              String   @id @default(cuid())
   name            String
-  description     String
-  price           Int
+  description     String?
+  price           Int?
   weight          Float?
   width           Float?
   height          Float?
   length          Float?
-  thumbnail       String
+  stock           Int?
+  thumbnail       String?
   images          String[]
-  discountedPrice Int      @map("descounted_price")
-  specification   Json?
-  isLive          Boolean  @default(true) @map("is_live")
+  discountedPrice Int?     @map("descounted_price")
+  hasVariants     Boolean  @default(false) @map("has_variants")
+  isActive        Boolean  @default(true) @map("is_active")
   sellerId        String?  @map("user_id")
   createdAt       DateTime @default(now()) @map("created_at")
   updatedAt       DateTime @updatedAt @map("updated_at")
@@ -97,23 +98,27 @@ model Product {
 }
 
 model ProductVariant {
-  id        String   @id @default(cuid())
-  productId String   @map("product_id")
-  sku       String
-  weight    Float
-  width     Float
-  height    Float
-  length    Float
-  thumbnail String
-  images    String[]
-  stock     Int
-  createdAt DateTime @default(now()) @map("created_at")
-  updatedAt DateTime @updatedAt @map("updated_at")
+  id              String   @id @default(cuid())
+  productId       String   @map("product_id")
+  sku             String
+  weight          Float
+  width           Float
+  height          Float
+  length          Float
+  thumbnail       String
+  images          String[]
+  price           Int
+  discountedPrice Int?
+  stock           Int
+  isActive        Boolean  @default(true) @map("is_active")
+  createdAt       DateTime @default(now()) @map("created_at")
+  updatedAt       DateTime @updatedAt @map("updated_at")
 
   product Product @relation(fields: [productId], references: [id], onDelete: Cascade)
 
   cartItems       CartItem[]
   attributeValues ProductAttributeValue[]
+  OrderItem       OrderItem[]
 
   @@unique([productId, sku])
   @@map("product_variants")
@@ -213,14 +218,14 @@ model CartItem {
   id        String   @id @default(cuid())
   cartId    String   @map("cart_id")
   productId String   @map("product_id")
-  variantId String   @map("variant_id")
+  variantId String?  @map("variant_id")
   quantity  Int
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
 
-  cart    Cart           @relation(fields: [cartId], references: [id], onDelete: Cascade)
-  product Product        @relation(fields: [productId], references: [id], onDelete: Cascade)
-  variant ProductVariant @relation(fields: [variantId], references: [id], onDelete: Cascade)
+  cart    Cart            @relation(fields: [cartId], references: [id], onDelete: Cascade)
+  product Product         @relation(fields: [productId], references: [id], onDelete: Cascade)
+  variant ProductVariant? @relation(fields: [variantId], references: [id], onDelete: Cascade)
 
   @@unique([cartId, variantId])
   @@map("cart_items")
@@ -259,18 +264,19 @@ model Order {
 
 model OrderItem {
   id        String   @id @default(cuid())
-  productId String   @map("product_id")
   orderId   String?  @map("order_id")
+  productId String   @map("product_id")
+  variantId String?  @map("variant_id")
+  price     Int
   quantity  Int
-  size      String?
-  color     String?
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
 
-  product Product @relation(fields: [productId], references: [id], onDelete: Cascade)
-  order   Order?  @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  product Product         @relation(fields: [productId], references: [id], onDelete: Cascade)
+  variant ProductVariant? @relation(fields: [variantId], references: [id], onDelete: Cascade)
+  order   Order?          @relation(fields: [orderId], references: [id], onDelete: Cascade)
 
-  @@unique([orderId, productId, size, color])
+  @@unique([orderId, productId, variantId])
   @@map("order_items")
 }
 

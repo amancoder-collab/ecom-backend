@@ -1,7 +1,9 @@
 import { Controller, Get, Param, Query } from '@nestjs/common';
-import { ProductService } from './product.service';
 import { ApiTags } from '@nestjs/swagger';
+import { Product } from '@prisma/client';
 import { PaginateQueryDto } from 'src/lib/pagination/dto/paginate-query.dto';
+import { Paginate } from 'src/lib/pagination/paginate';
+import { ProductService } from './product.service';
 
 @Controller('customer/product')
 @ApiTags('Customer Product')
@@ -10,7 +12,11 @@ export class ProductController {
 
   @Get()
   async getAllProducts(@Query() query: PaginateQueryDto) {
-    return this.productService.getAllProducts(query);
+    const paginate = new Paginate<Product>(query);
+    const { data, total } = await this.productService.getAllProducts(
+      paginate.params(),
+    );
+    return paginate.response(data, total);
   }
 
   @Get(':id')
