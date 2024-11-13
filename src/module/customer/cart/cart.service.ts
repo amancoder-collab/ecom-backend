@@ -166,6 +166,7 @@ export class CartService {
         cartItems: {
           include: {
             product: true,
+            variant: true,
           },
         },
         billingAddress: true,
