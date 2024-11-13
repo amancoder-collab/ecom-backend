@@ -69,6 +69,7 @@ model Product {
   id              String   @id @default(cuid())
   name            String
   description     String?
+  sku             String?
   price           Int?
   weight          Float?
   width           Float?
@@ -263,14 +264,23 @@ model Order {
 }
 
 model OrderItem {
-  id        String   @id @default(cuid())
-  orderId   String?  @map("order_id")
-  productId String   @map("product_id")
-  variantId String?  @map("variant_id")
-  price     Int
-  quantity  Int
-  createdAt DateTime @default(now()) @map("created_at")
-  updatedAt DateTime @updatedAt @map("updated_at")
+  id              String   @id @default(cuid())
+  orderId         String?  @map("order_id")
+  productId       String   @map("product_id")
+  variantId       String?  @map("variant_id")
+  name            String
+  thumbnail       String
+  images          String[]
+  sku             String
+  weight          Float
+  width           Float
+  height          Float
+  length          Float
+  price           Int
+  discountedPrice Int?
+  quantity        Int
+  createdAt       DateTime @default(now()) @map("created_at")
+  updatedAt       DateTime @updatedAt @map("updated_at")
 
   product Product         @relation(fields: [productId], references: [id], onDelete: Cascade)
   variant ProductVariant? @relation(fields: [variantId], references: [id], onDelete: Cascade)

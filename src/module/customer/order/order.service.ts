@@ -4,10 +4,19 @@ import {
   Injectable,
   InternalServerErrorException,
 } from '@nestjs/common';
-import { Cart, CartItem, Product, ProductVariant } from '@prisma/client';
+import {
+  Address,
+  Cart,
+  CartItem,
+  Product,
+  ProductVariant,
+} from '@prisma/client';
 import { PrismaService } from 'src/module/prisma/prisma.service';
 import { CreateShipRocketOrderDto } from 'src/shipping/dto/create-order.dto';
-import { ICreateShipRocketOrderResponse } from 'src/shipping/interface/shiprocket-responses';
+import {
+  ICreateShipRocketOrderResponse,
+  IShipRocketGenerateAWBResponse,
+} from 'src/shipping/interface/shiprocket-responses';
 import { ShippingService } from 'src/shipping/shipping.service';
 import { CartService } from '../cart/cart.service';
 
@@ -40,17 +49,22 @@ export class OrderService {
   }
 
   private calculateLargestItemDimensions(
-    cart: Cart & { cartItems: CartItem[] },
+    cart: Cart & {
+      cartItems: (CartItem & {
+        variant: ProductVariant;
+        product: Product;
+      })[];
+    },
   ) {
     let largest = { length: 0, width: 0, height: 0 };
     let totalWeight = 0;
 
-    cart?.cartItems.forEach((item: CartItem & { variant: ProductVariant }) => {
-      const variant = item.variant;
-      largest.length = Math.max(largest.length, variant?.length ?? 0);
-      largest.width = Math.max(largest.width, variant?.width ?? 0);
-      largest.height = Math.max(largest.height, variant?.height ?? 0);
-      totalWeight += (variant?.weight ?? 0) * item.quantity;
+    cart?.cartItems.forEach((item) => {
+      const product = item.variant ?? item.product;
+      largest.length = Math.max(largest.length, product?.length ?? 0);
+      largest.width = Math.max(largest.width, product?.width ?? 0);
+      largest.height = Math.max(largest.height, product?.height ?? 0);
+      totalWeight += (product?.weight ?? 0) * item.quantity;
     });
 
     return { ...largest, weight: totalWeight };
@@ -105,12 +119,10 @@ export class OrderService {
         shipRocketOrder =
           await this.shippingService.createShipRocketOrder(shipRocketOrderData);
 
-        const awbNumber = await this.shippingService.generateAWBNumber({
+        const { awbNumber } = await this.shippingService.generateAWBNumber({
           shipmentId: shipRocketOrder.shipment_id,
           courierId: cart?.courierCompanyId,
         });
-
-        console.log('awbNumber', awbNumber);
 
         await this.shippingService.schedulePickup({
           shipmentId: shipRocketOrder.shipment_id,
@@ -144,16 +156,18 @@ export class OrderService {
 
   private async createOrderInDatabase(
     userId: string,
-    cart: any,
-    shipRocketOrder: any,
-    awbNumber: any,
+    cart: Cart & {
+      cartItems: (CartItem & { product: Product; variant: ProductVariant })[];
+    },
+    shipRocketOrder: ICreateShipRocketOrderResponse,
+    awbNumber: string,
   ) {
     return this.prismaService.order.create({
       data: {
         shipRocketOrderId: shipRocketOrder.order_id,
         courierCompanyId: cart?.courierCompanyId,
         shipmentId: shipRocketOrder.shipment_id,
-        awbCode: awbNumber.awbNumber,
+        awbCode: awbNumber,
         customOrderId: shipRocketOrder.order_id,
         orderDate: new Date(),
         estimatedDeliveryDate: cart?.estimatedDeliveryDate,
@@ -169,8 +183,20 @@ export class OrderService {
             data: cart?.cartItems.map((item) => ({
               productId: item.productId,
               quantity: item.quantity,
-              size: item.size,
-              color: item.color,
+              name: item.product.name,
+              thumbnail: item.variant
+                ? item.variant.thumbnail
+                : item.product.thumbnail,
+              sku: item.variant ? item.variant.sku : item.product.sku,
+              weight: item.variant ? item.variant.weight : item.product.weight,
+              width: item.variant ? item.variant.width : item.product.width,
+              height: item.variant ? item.variant.height : item.product.height,
+              length: item.variant ? item.variant.length : item.product.length,
+              price: item.variant ? item.variant.price : item.product.price,
+              discountedPrice: item.variant
+                ? item.variant.discountedPrice
+                : item.product.discountedPrice,
+              images: item.variant ? item.variant.images : item.product.images,
             })),
           },
         },
@@ -186,7 +212,11 @@ export class OrderService {
   }
 
   private async prepareShipRocketOrderData(
-    cart: any,
+    cart: Cart & {
+      cartItems: (CartItem & { product: Product; variant: ProductVariant })[];
+      billingAddress: Address;
+      shippingAddress: Address;
+    },
     locations: any,
   ): Promise<CreateShipRocketOrderDto> {
     const dimensions = this.calculateLargestItemDimensions(cart);
@@ -210,14 +240,16 @@ export class OrderService {
       shipping_is_billing: cart?.shippingAddressId === cart?.billingAddressId,
       order_items: cart?.cartItems.map((item) => ({
         name: item.product.name,
-        sku: item.product.sku,
+        sku: item.variant ? item.variant.sku : item.product.sku,
         units: item.quantity,
-        selling_price: item.product.discountedPrice,
+        selling_price: item.variant
+          ? (item.variant.discountedPrice ?? item.variant.price)
+          : (item.product.discountedPrice ?? item.product.price),
       })),
       payment_method: 'COD',
       total_discount: 0,
-      sub_total: cart?.cartItems?.reduce((acc, product) => {
-        return acc + product.product.discountedPrice * product.quantity;
+      sub_total: cart?.cartItems?.reduce((acc, item) => {
+        return acc + item.product.discountedPrice * item.quantity;
       }, 0),
       length: dimensions.length,
       breadth: dimensions.width,
