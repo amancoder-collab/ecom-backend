@@ -3,6 +3,7 @@ import { Operation } from 'src/common/operations/operation.function';
 import { ShippingModule } from 'src/shipping/shipping.module';
 import { CartController } from './cart.controller';
 import { CartService } from './cart.service';
+import { CustomerModule } from '../customer.module';
 
 @Module({
   imports: [forwardRef(() => ShippingModule)],

@@ -17,7 +17,7 @@ import { CurrentUser } from '../auth/decorators/get-current-user.decorator';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { CartService } from './cart.service';
 import { AddCartItemDto } from './dto/add-cart-item.dto';
-import { CreateAddressDto } from './dto/create-address.dto';
+import { CartAddressDto } from './dto/create-address.dto';
 import { UpdateCartItemQuantityDto } from './dto/update-cart-item.dto';
 
 @Controller('customer/cart')
@@ -154,7 +154,7 @@ export class CartController {
   async updateAddress(
     @Request() req,
     @Param('cartId') cartId: string,
-    @Body() dto: CreateAddressDto,
+    @Body() dto: CartAddressDto,
   ) {
     const UserId = req.user.id;
     return this.cartService.updateAddress(cartId, UserId, dto);
