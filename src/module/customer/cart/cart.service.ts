@@ -8,8 +8,9 @@ import {
 import { ClientLogError } from 'src/common/helper/error_description';
 import { PrismaService } from 'src/module/prisma/prisma.service';
 import { ShippingService } from 'src/shipping/shipping.service';
+import { CustomerService } from '../customer.service';
 import { AddCartItemDto } from './dto/add-cart-item.dto';
-import { CreateAddressDto } from './dto/create-address.dto';
+import { CartAddressDto } from './dto/create-address.dto';
 import { UpdateCartItemQuantityDto } from './dto/update-cart-item.dto';
 
 @Injectable()
@@ -18,6 +19,7 @@ export class CartService {
     private readonly prismaService: PrismaService,
     @Inject(forwardRef(() => ShippingService))
     private readonly shippingService: ShippingService,
+    private readonly customerService: CustomerService,
   ) {}
 
   async addItemToCart(cartId: string, dto: AddCartItemDto, userId: string) {
@@ -252,54 +254,28 @@ export class CartService {
     });
   }
 
-  async updateAddress(cartId: string, userId: string, dto: CreateAddressDto) {
+  async updateAddress(cartId: string, userId: string, dto: CartAddressDto) {
     const existingCart = await this.prismaService.cart.findUnique({
       where: { id: cartId },
       include: { shippingAddress: true, billingAddress: true },
     });
 
     if (!existingCart) {
-      throw new NotFoundException('Cart not found');
+      throw new NotFoundException(ClientLogError.CART_NOT_EXIST);
     }
 
     let shippingAddress, billingAddress;
 
     if (existingCart.shippingAddress) {
-      shippingAddress = await this.prismaService.address.update({
-        where: { id: existingCart.shippingAddress.id },
-        data: {
-          firstName: dto.shipping.firstName,
-          lastName: dto.shipping.lastName,
-          address: dto.shipping.address,
-          email: dto.shipping.email,
-          address2: dto.shipping.address2,
-          phone: dto.shipping.phone,
-          city: dto.shipping.city,
-          state: dto.shipping.state,
-          country: dto.shipping.country,
-          pincode: dto.shipping.pincode,
-        },
-      });
+      shippingAddress = await this.customerService.updateAddress(
+        existingCart.shippingAddress.id,
+        dto.shipping,
+      );
     } else {
-      shippingAddress = await this.prismaService.address.create({
-        data: {
-          user: {
-            connect: {
-              id: userId,
-            },
-          },
-          firstName: dto.shipping.firstName,
-          lastName: dto.shipping.lastName,
-          email: dto.shipping.email,
-          address2: dto.shipping.address2,
-          phone: dto.shipping.phone,
-          address: dto.shipping.address,
-          city: dto.shipping.city,
-          state: dto.shipping.state,
-          country: dto.shipping.country,
-          pincode: dto.shipping.pincode,
-        },
-      });
+      shippingAddress = await this.customerService.createAddress(
+        userId,
+        dto.shipping,
+      );
     }
 
     if (dto.billing_same_as_shipping) {
@@ -309,41 +285,15 @@ export class CartService {
         existingCart.billingAddress &&
         existingCart.billingAddress.id !== shippingAddress.id
       ) {
-        billingAddress = await this.prismaService.address.update({
-          where: { id: existingCart.billingAddress.id },
-          data: {
-            firstName: dto.billing.firstName,
-            lastName: dto.billing.lastName,
-            email: dto.billing.email,
-            address2: dto.billing.address2,
-            phone: dto.billing.phone,
-            address: dto.billing.address,
-            city: dto.billing.city,
-            state: dto.billing.state,
-            country: dto.billing.country,
-            pincode: dto.billing.pincode,
-          },
-        });
+        billingAddress = await this.customerService.updateAddress(
+          existingCart.billingAddress.id,
+          dto.billing,
+        );
       } else {
-        billingAddress = await this.prismaService.address.create({
-          data: {
-            user: {
-              connect: {
-                id: userId,
-              },
-            },
-            firstName: dto.billing.firstName,
-            lastName: dto.billing.lastName,
-            email: dto.billing.email,
-            address2: dto.billing.address2,
-            phone: dto.billing.phone,
-            address: dto.billing.address,
-            city: dto.billing.city,
-            state: dto.billing.state,
-            country: dto.billing.country,
-            pincode: dto.billing.pincode,
-          },
-        });
+        billingAddress = await this.customerService.createAddress(
+          userId,
+          dto.billing,
+        );
       }
     }
 

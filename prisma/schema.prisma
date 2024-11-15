@@ -37,6 +37,12 @@ enum PaymentMethod {
   COD
 }
 
+enum OrderStatus {
+  PENDING
+  DELIVERED
+  CANCELLED
+}
+
 model User {
   id          String    @id @default(cuid())
   firstName   String    @map("first_name")
@@ -60,7 +66,7 @@ model User {
   wishlists   Wishlist[]
   otps        Otp[]
   couponsUsBy CouponUsage[]
-  Order       Order[]
+  orders      Order[]
 
   @@map("users")
 }
@@ -154,18 +160,21 @@ model ProductAttributeValue {
 }
 
 model Address {
-  id        String  @id @default(cuid())
-  userId    String  @map("user_id")
-  firstName String  @map("first_name")
-  lastName  String  @map("last_name")
+  id        String   @id @default(cuid())
+  userId    String   @map("user_id")
+  firstName String   @map("first_name")
+  lastName  String   @map("last_name")
   email     String
   phone     String
   address   String
-  address2  String? @map("address_2")
+  address2  String?  @map("address_2")
   city      String
   state     String
   country   String
   pincode   Int
+  isDefault Boolean  @default(false) @map("is_default")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
@@ -233,25 +242,26 @@ model CartItem {
 }
 
 model Order {
-  id                    String   @id @default(cuid())
-  customOrderId         String   @unique @map("custom_order_id")
-  shipRocketOrderId     String   @unique @map("ship_rocket_order_id")
-  shipmentId            String   @unique @map("shipment_id")
-  awbCode               String?  @map("awb_code")
-  courierCompanyId      Int?     @map("courier_company_id")
-  userId                String   @map("user_id")
-  paymentId             String?  @unique @map("payment_id")
-  billingAddressId      String   @map("billing_address_id")
-  shippingAddressId     String   @map("shipping_address_id")
-  orderDate             DateTime @map("order_date")
-  estimatedDeliveryDate String   @map("estimated_delivery_date")
-  actualDeliveryDate    String?  @map("actual_delivery_date")
-  shippingCost          Int      @map("shipping_cost")
-  codCharges            Int      @map("cod_charges")
-  subTotal              Int      @map("sub_total")
-  totalCost             Int      @map("total_cost")
-  createdAt             DateTime @default(now()) @map("created_at")
-  updatedAt             DateTime @updatedAt @map("updated_at")
+  id                    String      @id @default(cuid())
+  customOrderId         String      @unique @map("custom_order_id")
+  shipRocketOrderId     String      @unique @map("ship_rocket_order_id")
+  shipmentId            String      @unique @map("shipment_id")
+  awbCode               String?     @map("awb_code")
+  courierCompanyId      Int?        @map("courier_company_id")
+  userId                String      @map("user_id")
+  status                OrderStatus @default(PENDING) @map("status")
+  paymentId             String?     @unique @map("payment_id")
+  billingAddressId      String      @map("billing_address_id")
+  shippingAddressId     String      @map("shipping_address_id")
+  orderDate             DateTime    @map("order_date")
+  estimatedDeliveryDate String      @map("estimated_delivery_date")
+  actualDeliveryDate    String?     @map("actual_delivery_date")
+  shippingCost          Int         @map("shipping_cost")
+  codCharges            Int         @map("cod_charges")
+  subTotal              Int         @map("sub_total")
+  totalCost             Int         @map("total_cost")
+  createdAt             DateTime    @default(now()) @map("created_at")
+  updatedAt             DateTime    @updatedAt @map("updated_at")
 
   user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   payment         Payment? @relation(fields: [paymentId], references: [id])

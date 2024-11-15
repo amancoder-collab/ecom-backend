@@ -5,7 +5,7 @@ import { emailRegExp } from 'src/common/types/reg.exp.types';
 export class LoginDto {
   @ApiProperty({
     description: 'enter the email of the user',
-    example: 'testuser@example.com',
+    example: 'admin@admin.com',
     required: true,
   })
   @Matches(emailRegExp, {
@@ -17,7 +17,7 @@ export class LoginDto {
 
   @ApiProperty({
     description: 'Enter the Password',
-    example: '1234',
+    example: 'supersecret',
     required: true,
   })
   @IsNotEmpty({ message: 'password felid cannot be empty!' })

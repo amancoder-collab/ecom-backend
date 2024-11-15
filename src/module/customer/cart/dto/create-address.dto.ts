@@ -60,7 +60,7 @@ export class AddressDto {
   pincode: number;
 }
 
-export class CreateAddressDto {
+export class CartAddressDto {
   @ApiProperty()
   @IsOptional()
   @ValidateNested()

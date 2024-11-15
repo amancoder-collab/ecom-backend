@@ -198,6 +198,10 @@ export class ProductService {
           'Thumbnail and images are required when no variants are provided',
         );
       }
+    } else {
+      if (dto.variants.length === 0) {
+        throw new BadRequestException('Variants are required');
+      }
     }
 
     return await this.prismaService.$transaction(async (prisma) => {
