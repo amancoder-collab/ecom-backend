@@ -51,10 +51,17 @@ export class CartService {
         throw new BadRequestException(ClientLogError.CART_NOT_EXIST);
       }
 
+      if (existingProduct.hasVariants && !dto.variantId) {
+        throw new BadRequestException(
+          'Variant ID is required for this product',
+        );
+      }
+
       const existingCartItem = await prisma.cartItem.findFirst({
         where: {
           cartId: cartId,
           productId: dto.productId,
+          ...(existingProduct.hasVariants ? { variantId: dto.variantId } : {}),
         },
       });
 
@@ -84,7 +91,9 @@ export class CartService {
           data: {
             cartItems: {
               create: {
-                variantId: dto.variantId,
+                ...(existingProduct.hasVariants
+                  ? { variantId: dto.variantId }
+                  : {}),
                 quantity: dto.quantity,
                 productId: dto.productId,
               },
@@ -166,6 +175,15 @@ export class CartService {
         cartItems: {
           include: {
             product: true,
+            variant: {
+              include: {
+                attributeValues: {
+                  include: {
+                    attribute: true,
+                  },
+                },
+              },
+            },
           },
         },
         billingAddress: true,

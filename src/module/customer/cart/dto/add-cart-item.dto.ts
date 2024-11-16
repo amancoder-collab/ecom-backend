@@ -17,6 +17,6 @@ export class AddCartItemDto {
 
   @ApiProperty()
   @IsString()
-  @IsNotEmpty()
-  variantId: string;
+  @IsOptional()
+  variantId?: string;
 }

@@ -80,95 +80,118 @@ export class ShippingService {
     try {
       const cart = await this.cartService.findById(cartId);
 
-      const weight = cart?.cartItems?.reduce((acc, product) => {
-        return acc + product.variant.weight * product.quantity;
-      }, 0);
-
-      const subTotal = cart?.cartItems?.reduce((acc, product) => {
-        return acc + product.product.discountedPrice * product.quantity;
+      const weight = cart?.cartItems?.reduce((acc, item) => {
+        return (
+          acc +
+          (item.product.hasVariants
+            ? item.variant.weight
+            : item.product.weight) *
+            item.quantity
+        );
       }, 0);
 
       if (!weight) {
         throw new InternalServerErrorException('Cart is empty');
       }
 
-      let weightInKg = weight / 1000;
+      const subTotal = cart?.cartItems?.reduce((acc, item) => {
+        return (
+          acc +
+          (item.product.hasVariants
+            ? (item.variant.discountedPrice ?? item.variant.price)
+            : (item.product.discountedPrice ?? item.product.price)) *
+            item.quantity
+        );
+      }, 0);
 
-      const pickupLocations = await this.getAllPickupLocations();
+      if (data.delivery_postcode) {
+        let weightInKg = weight / 1000;
+        const pickupLocations = await this.getAllPickupLocations();
 
-      if (!pickupLocations?.shipping_address?.[0]?.pickup_location) {
-        throw new InternalServerErrorException('Pickup location not found');
-      }
+        if (!pickupLocations?.shipping_address?.[0]?.pickup_location) {
+          throw new InternalServerErrorException('Pickup location not found');
+        }
 
-      const pinCode = parseInt(
-        pickupLocations?.shipping_address?.[0]?.pin_code,
-      );
+        const pinCode = parseInt(
+          pickupLocations?.shipping_address?.[0]?.pin_code,
+        );
 
-      const courierServiceabilityResponseData =
-        await this.shiprocketApiService.get<ICourierServiceabilityResponse>(
-          'courier/serviceability/',
-          {
-            params: {
-              pickup_postcode: pinCode,
-              weight: weightInKg,
-              delivery_postcode: data.delivery_postcode,
-              cod: data.cod,
+        const courierServiceabilityResponseData =
+          await this.shiprocketApiService.get<ICourierServiceabilityResponse>(
+            'courier/serviceability/',
+            {
+              params: {
+                pickup_postcode: pinCode,
+                weight: weightInKg,
+                delivery_postcode: data.delivery_postcode,
+                cod: data.cod,
+              },
             },
+          );
+
+        if (
+          courierServiceabilityResponseData?.data?.available_courier_companies
+            .length <= 0 ||
+          !courierServiceabilityResponseData?.data?.available_courier_companies
+        ) {
+          throw new InternalServerErrorException(
+            'No courier companies available for the selected location',
+          );
+        }
+
+        const shipRocketRecommendedCourierId =
+          courierServiceabilityResponseData?.data
+            ?.shiprocket_recommended_courier_id;
+        const availableCourierCompanies =
+          courierServiceabilityResponseData?.data?.available_courier_companies;
+
+        let shippingCourier: ICourierCompany = availableCourierCompanies.find(
+          (company) =>
+            company.courier_company_id === shipRocketRecommendedCourierId,
+        );
+
+        if (!shippingCourier) {
+          shippingCourier = availableCourierCompanies[0];
+        }
+
+        const totalCharges: any = {
+          shippingCost: shippingCourier.freight_charge,
+          estimatedDeliveryDate: shippingCourier.etd,
+          subTotal: subTotal,
+          totalCost:
+            subTotal +
+            shippingCourier.freight_charge +
+            (data.cod ? shippingCourier.cod_charges : 0),
+        };
+
+        if (data.cod === 1) {
+          totalCharges['codCharges'] = shippingCourier.cod_charges;
+        }
+
+        await this.prismaService.cart.update({
+          where: { id: cartId },
+          data: {
+            courierCompanyId: shippingCourier.courier_company_id,
+            shippingCost: totalCharges.shippingCost,
+            codCharges: data.cod === 1 ? totalCharges.codCharges : null,
+            estimatedDeliveryDate: totalCharges.estimatedDeliveryDate,
+            subTotal: totalCharges.subTotal,
+            totalCost: totalCharges.totalCost,
           },
-        );
+        });
 
-      if (
-        courierServiceabilityResponseData?.data?.available_courier_companies
-          .length <= 0 ||
-        !courierServiceabilityResponseData?.data?.available_courier_companies
-      ) {
-        throw new InternalServerErrorException(
-          'No courier companies available for the selected location',
-        );
+        return totalCharges;
+      } else {
+        await this.prismaService.cart.update({
+          where: { id: cartId },
+          data: {
+            shippingCost: 0,
+            codCharges: 0,
+            estimatedDeliveryDate: null,
+            subTotal: subTotal,
+          },
+        });
       }
-
-      const shipRocketRecommendedCourierId =
-        courierServiceabilityResponseData?.data
-          ?.shiprocket_recommended_courier_id;
-      const availableCourierCompanies =
-        courierServiceabilityResponseData?.data?.available_courier_companies;
-
-      let shippingCourier: ICourierCompany = availableCourierCompanies.find(
-        (company) =>
-          company.courier_company_id === shipRocketRecommendedCourierId,
-      );
-
-      if (!shippingCourier) {
-        shippingCourier = availableCourierCompanies[0];
-      }
-
-      const totalCharges: any = {
-        shippingCost: shippingCourier.freight_charge,
-        estimatedDeliveryDate: shippingCourier.etd,
-        subTotal: subTotal,
-        totalCost:
-          subTotal +
-          shippingCourier.freight_charge +
-          (data.cod ? shippingCourier.cod_charges : 0),
-      };
-
-      if (data.cod === 1) {
-        totalCharges['codCharges'] = shippingCourier.cod_charges;
-      }
-
-      await this.prismaService.cart.update({
-        where: { id: cartId },
-        data: {
-          courierCompanyId: shippingCourier.courier_company_id,
-          shippingCost: totalCharges.shippingCost,
-          codCharges: data.cod === 1 ? totalCharges.codCharges : null,
-          estimatedDeliveryDate: totalCharges.estimatedDeliveryDate,
-          subTotal: totalCharges.subTotal,
-          totalCost: totalCharges.totalCost,
-        },
-      });
-
-      return totalCharges;
     } catch (err) {
       console.error(
         'Error calculating shipping charges',
@@ -294,6 +317,8 @@ export class ShippingService {
             },
           },
         );
+
+      console.log('dataaa', data);
 
       if (data?.success) {
         return {
