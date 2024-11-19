@@ -61,19 +61,15 @@ export class AddressDto {
 }
 
 export class CartAddressDto {
-  @ApiProperty()
+  @ApiProperty({ required: false })
   @IsOptional()
-  @ValidateNested()
-  @Type(() => AddressDto)
-  billing?: AddressDto;
+  @IsString()
+  billingAddressId?: string;
 
-  @ApiProperty()
-  @IsOptional()
-  billing_same_as_shipping: boolean;
-
-  @ApiProperty()
+  @ApiProperty({
+    required: true,
+  })
   @IsNotEmpty()
-  @ValidateNested()
-  @Type(() => AddressDto)
-  shipping: AddressDto;
+  @IsString()
+  shippingAddressId: string;
 }

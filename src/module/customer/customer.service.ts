@@ -49,4 +49,10 @@ export class CustomerService {
       },
     });
   }
+
+  async deleteAddress(id: string) {
+    return this.prismaService.address.delete({
+      where: { id },
+    });
+  }
 }

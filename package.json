@@ -10,7 +10,7 @@
     "postbuild": "cp -r src/module/customer/auth/certs dist/module/customer/auth/certs",
     "format": "prettier --write \"src/**/*.ts\" \"test/**/*.ts\"",
     "start": "nest start",
-    "start:dev": "nest start --watch",
+    "start:dev": "NODE_OPTIONS='--max-old-space-size=8192' nest start --watch",
     "migrate": "npx prisma migrate dev",
     "start:debug": "nest start --debug --watch",
     "start:prod": "node dist/main",

@@ -151,12 +151,12 @@ export class CartController {
     summary: 'update address by USER',
     description: 'update address by USER',
   })
-  async updateAddress(
+  async updateCartAddress(
     @Request() req,
     @Param('cartId') cartId: string,
     @Body() dto: CartAddressDto,
   ) {
     const UserId = req.user.id;
-    return this.cartService.updateAddress(cartId, UserId, dto);
+    return this.cartService.updateCartAddress(cartId, UserId, dto);
   }
 }

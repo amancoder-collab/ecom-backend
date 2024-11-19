@@ -1,6 +1,7 @@
 import {
   Body,
   Controller,
+  Delete,
   Get,
   Param,
   Post,
@@ -24,6 +25,11 @@ export class CustomerController {
   @Get('addresses')
   async getUserAddresses(@CurrentUser() user: User) {
     return this.customerService.getUserAddresses(user.id);
+  }
+
+  @Delete('address/:id')
+  async deleteAddress(@Param('id') id: string) {
+    return this.customerService.deleteAddress(id);
   }
 
   @Post('address')

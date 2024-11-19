@@ -254,7 +254,7 @@ export class CartService {
     });
   }
 
-  async updateAddress(cartId: string, userId: string, dto: CartAddressDto) {
+  async updateCartAddress(cartId: string, userId: string, dto: CartAddressDto) {
     const existingCart = await this.prismaService.cart.findUnique({
       where: { id: cartId },
       include: { shippingAddress: true, billingAddress: true },
@@ -264,47 +264,39 @@ export class CartService {
       throw new NotFoundException(ClientLogError.CART_NOT_EXIST);
     }
 
-    let shippingAddress, billingAddress;
+    const [shippingAddressExists, billingAddressExists] = await Promise.all([
+      await this.prismaService.address.findUnique({
+        where: {
+          id: dto.shippingAddressId,
+        },
+      }),
+      await this.prismaService.address.findUnique({
+        where: {
+          id: dto.billingAddressId,
+        },
+      }),
+    ]);
 
-    if (existingCart.shippingAddress) {
-      shippingAddress = await this.customerService.updateAddress(
-        existingCart.shippingAddress.id,
-        dto.shipping,
-      );
-    } else {
-      shippingAddress = await this.customerService.createAddress(
-        userId,
-        dto.shipping,
+    if (!shippingAddressExists) {
+      throw new NotFoundException(
+        `Address with id:${dto.shippingAddressId} not found`,
       );
     }
 
-    if (dto.billing_same_as_shipping) {
-      billingAddress = shippingAddress;
-    } else {
-      if (
-        existingCart.billingAddress &&
-        existingCart.billingAddress.id !== shippingAddress.id
-      ) {
-        billingAddress = await this.customerService.updateAddress(
-          existingCart.billingAddress.id,
-          dto.billing,
-        );
-      } else {
-        billingAddress = await this.customerService.createAddress(
-          userId,
-          dto.billing,
-        );
-      }
+    if (!billingAddressExists) {
+      throw new NotFoundException(
+        `Address with id:${dto.billingAddressId} not found`,
+      );
     }
 
     return await this.prismaService.cart.update({
       where: { id: cartId },
       data: {
         shippingAddress: {
-          connect: { id: shippingAddress.id },
+          connect: { id: dto.shippingAddressId },
         },
         billingAddress: {
-          connect: { id: billingAddress.id },
+          connect: { id: dto.billingAddressId },
         },
       },
       include: {
