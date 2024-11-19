@@ -5,7 +5,9 @@ import * as cookieParser from 'cookie-parser';
 import { ValidationPipe } from './common/pipes/validation.pipe';
 
 async function bootstrap() {
-  const app = await NestFactory.create(AppModule);
+  const app = await NestFactory.create(AppModule, {
+    bodyParser: true,
+  });
 
   app.use(cookieParser());
   app.useGlobalPipes(new ValidationPipe());
@@ -17,6 +19,26 @@ async function bootstrap() {
       'Origin,X-Requested-With,Content-Type,Accept,Authorization,authorization,X-Forwarded-for,External_Network,external_network',
     credentials: true,
   });
+
+  // Force garbage collection every 30 seconds
+  if (global.gc) {
+    setInterval(() => {
+      try {
+        global.gc();
+      } catch (e) {
+        console.error('Global GC Failed:', e);
+      }
+    }, 30000);
+  }
+
+  // Add other middleware and configuration
+  // ...
+
+  // Monitor memory usage
+  setInterval(() => {
+    const used = process.memoryUsage();
+    console.log(`Memory usage: ${Math.round(used.heapUsed / 1024 / 1024)}MB`);
+  }, 3000);
 
   const config = new DocumentBuilder()
     .addBearerAuth()
