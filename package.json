@@ -22,6 +22,7 @@
     "test:e2e": "jest --config ./test/jest-e2e.json"
   },
   "dependencies": {
+    "@nestjs/cli": "^10.4.7",
     "@nestjs/axios": "^3.0.3",
     "@nestjs/cache-manager": "^2.2.2",
     "@nestjs/common": "^10.0.0",
@@ -50,7 +51,6 @@
     "rxjs": "^7.8.1"
   },
   "devDependencies": {
-    "@nestjs/cli": "^10.0.0",
     "@nestjs/schematics": "^10.0.0",
     "@nestjs/testing": "^10.0.0",
     "@types/cookie-parser": "^1.4.7",
