@@ -20,25 +20,11 @@ async function bootstrap() {
     credentials: true,
   });
 
-  // Force garbage collection every 30 seconds
-  if (global.gc) {
-    setInterval(() => {
-      try {
-        global.gc();
-      } catch (e) {
-        console.error('Global GC Failed:', e);
-      }
-    }, 30000);
-  }
-
-  // Add other middleware and configuration
-  // ...
-
   // Monitor memory usage
   setInterval(() => {
     const used = process.memoryUsage();
     console.log(`Memory usage: ${Math.round(used.heapUsed / 1024 / 1024)}MB`);
-  }, 3000);
+  }, 30000);
 
   const config = new DocumentBuilder()
     .addBearerAuth()
