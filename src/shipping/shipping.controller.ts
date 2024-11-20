@@ -24,7 +24,6 @@ export class ShippingController {
     @Param('cartId') cartId: string,
     @Body() data: CalculateShippingDto,
   ) {
-    console.log('User ', user);
     return this.shippingService.getCharges(user.id, cartId, data);
   }
 

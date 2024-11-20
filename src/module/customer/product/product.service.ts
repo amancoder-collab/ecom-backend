@@ -1,6 +1,5 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { Operation } from 'src/common/operations/operation.function';
-import { PaginateQueryDto } from 'src/lib/pagination/dto/paginate-query.dto';
 import { Pagination } from 'src/lib/pagination/paginate';
 import { PrismaService } from 'src/module/prisma/prisma.service';
 
@@ -12,8 +11,6 @@ export class ProductService {
   ) {}
 
   async getAllProducts(params: Pagination) {
-    console.log('params', params);
-
     const isPriceSorting = params.orderBy && 'price' in params.orderBy;
 
     const isPopularitySorting =
