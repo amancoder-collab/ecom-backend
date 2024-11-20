@@ -16,8 +16,6 @@ export const paginate = (query: PaginateQueryDto) => {
     },
   };
 
-  console.log(query);
-
   paginationParams.take = query.limit
     ? parseInt(query.limit.toString(), 10)
     : 10;
@@ -44,7 +42,6 @@ export const paginate = (query: PaginateQueryDto) => {
   //         : { [field]: { contains: search, mode: 'insensitive' } },
   //     ),
   //   };
-  //   console.log(JSON.stringify(paginationParams.where));
   // }
 
   if (search && searchFields.length) {

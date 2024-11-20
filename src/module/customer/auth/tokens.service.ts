@@ -1,11 +1,8 @@
 import { Injectable, Logger, UnauthorizedException } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
-import { ITokens } from './interfaces/tokens';
-import { AppConfigService } from 'src/lib/config/config.service';
 import { User } from '@prisma/client';
-import * as fs from 'fs';
-import * as path from 'path';
-
+import { AppConfigService } from 'src/lib/config/config.service';
+import { ITokens } from './interfaces/tokens';
 @Injectable()
 export class TokensService {
   private readonly logger = new Logger(TokensService.name);
@@ -41,7 +38,7 @@ export class TokensService {
         algorithms: ['RS256'],
       });
     } catch (error) {
-      this.logger.error('Error verifying refresh token', error.stack);
+      this.logger.error('Error verifying refresh token', error);
       throw new UnauthorizedException('Invalid or expired token');
     }
   }

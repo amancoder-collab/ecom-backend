@@ -434,8 +434,6 @@ export class ProductService {
               },
             );
 
-            console.log('attribute Values found', attributeValues);
-
             if (variant.id) {
               await prisma.productVariant.update({
                 where: { id: variant.id },

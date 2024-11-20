@@ -9,6 +9,8 @@
     "target": "ES2021",
     "sourceMap": true,
     "outDir": "./dist",
+    "types": ["node", "express", "multer"],
+    "strict": true,
     "baseUrl": "./",
     "incremental": true,
     "skipLibCheck": true,

@@ -1,12 +1,12 @@
 import { Global, Module } from '@nestjs/common';
-import { WinstonModule } from 'nest-winston';
+import { CustomLogger } from './logger.service';
 import { winstonConfig } from './logger.config';
-import { CustomLoggerService } from './logger.service';
+import { WinstonModule } from 'nest-winston';
 
 @Global()
 @Module({
   imports: [WinstonModule.forRoot(winstonConfig)],
-  providers: [CustomLoggerService],
-  exports: [CustomLoggerService],
+  providers: [CustomLogger],
+  exports: [CustomLogger],
 })
 export class LoggerModule {}

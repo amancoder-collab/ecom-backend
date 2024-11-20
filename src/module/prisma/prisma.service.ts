@@ -1,13 +1,18 @@
-import { Injectable, OnModuleDestroy, OnModuleInit } from '@nestjs/common';
+import {
+  Injectable,
+  Logger,
+  OnModuleDestroy,
+  OnModuleInit,
+} from '@nestjs/common';
 import { PrismaClient } from '@prisma/client';
-import { CustomLoggerService } from '../logger/logger.service';
 
 @Injectable()
 export class PrismaService
   extends PrismaClient
   implements OnModuleInit, OnModuleDestroy
 {
-  constructor(private readonly logger: CustomLoggerService) {
+  private readonly logger = new Logger(PrismaService.name);
+  constructor() {
     super({
       log: [
         { emit: 'event', level: 'query' },

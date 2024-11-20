@@ -3,6 +3,7 @@ import {
   Inject,
   Injectable,
   InternalServerErrorException,
+  Logger,
 } from '@nestjs/common';
 import {
   Address,
@@ -13,15 +14,13 @@ import {
 } from '@prisma/client';
 import { PrismaService } from 'src/module/prisma/prisma.service';
 import { CreateShipRocketOrderDto } from 'src/shipping/dto/create-order.dto';
-import {
-  ICreateShipRocketOrderResponse,
-  IShipRocketGenerateAWBResponse,
-} from 'src/shipping/interface/shiprocket-responses';
+import { ICreateShipRocketOrderResponse } from 'src/shipping/interface/shiprocket-responses';
 import { ShippingService } from 'src/shipping/shipping.service';
 import { CartService } from '../cart/cart.service';
 
 @Injectable()
 export class OrderService {
+  private readonly logger = new Logger(OrderService.name);
   public constructor(
     @Inject(forwardRef(() => CartService))
     @Inject(forwardRef(() => ShippingService))
@@ -136,15 +135,18 @@ export class OrderService {
         );
 
         return order;
-      } catch (error) {
+      } catch (error: any) {
         if (shipRocketOrder) {
           try {
             const response = await this.shippingService.cancelOrder({
               ids: [shipRocketOrder.order_id],
             });
-            console.log('response', response);
+            this.logger.log('response', response);
           } catch (cancelError) {
-            console.error('Failed to cancel ShipRocket order:', cancelError);
+            this.logger.error(
+              'Failed to cancel ShipRocket order:',
+              cancelError,
+            );
           }
         }
         throw new InternalServerErrorException(

@@ -1,15 +1,14 @@
-import { HttpService } from '@nestjs/axios';
 import {
   BadRequestException,
   forwardRef,
   Inject,
   Injectable,
   InternalServerErrorException,
+  Logger,
   NotFoundException,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { CartService } from 'src/module/customer/cart/cart.service';
-import { OrderService } from 'src/module/customer/order/order.service';
 import { PrismaService } from 'src/module/prisma/prisma.service';
 import { CalculateShippingDto } from './dto/calculate-shipping.dto';
 import { CancelOrderDto } from './dto/cancel-order.dto';
@@ -30,11 +29,10 @@ import { ShipRocketApiService } from './shiprocket-api.service';
 
 @Injectable()
 export class ShippingService {
+  private readonly logger = new Logger(ShippingService.name);
   constructor(
     @Inject(forwardRef(() => CartService))
     private readonly cartService: CartService,
-    // @Inject(forwardRef(() => OrderService))
-    // private readonly orderService: OrderService,
     private readonly prismaService: PrismaService,
     private readonly configService: ConfigService,
     private readonly shiprocketApiService: ShipRocketApiService,
@@ -156,8 +154,8 @@ export class ShippingService {
           },
         });
       }
-    } catch (err) {
-      console.error(
+    } catch (err: any) {
+      this.logger.error(
         'Error calculating shipping charges',
         err?.response?.data ?? err,
       );
@@ -176,7 +174,7 @@ export class ShippingService {
 
       return data?.data;
     } catch (err) {
-      console.error('Error fetching pickup locations', err);
+      this.logger.error('Error fetching pickup locations', err);
       throw new InternalServerErrorException('Error fetching pickup locations');
     }
   }
@@ -189,8 +187,8 @@ export class ShippingService {
         '/orders/create/adhoc',
         dto,
       );
-    } catch (err) {
-      console.error('Error creating order', err?.response?.data);
+    } catch (err: any) {
+      this.logger.error('Error creating order', err?.response?.data);
       throw new InternalServerErrorException('Error creating order');
     }
   }
@@ -200,8 +198,8 @@ export class ShippingService {
       return await this.shiprocketApiService.get<IShipRocketOrdersResponse>(
         '/orders',
       );
-    } catch (err) {
-      console.error('Error fetching orders', err?.response?.data ?? err);
+    } catch (err: any) {
+      this.logger.error('Error fetching orders', err?.response?.data ?? err);
       throw new InternalServerErrorException('Error fetching orders');
     }
   }
@@ -217,7 +215,7 @@ export class ShippingService {
           },
         );
 
-      console.log('response generateAWBNumber', data);
+      this.logger.log('response generateAWBNumber', data);
 
       const awbNumber = data?.response?.data?.awb_code;
 
@@ -230,8 +228,11 @@ export class ShippingService {
       return {
         awbNumber,
       };
-    } catch (error) {
-      console.error('Error generating AWB:', error?.response?.data ?? error);
+    } catch (error: any) {
+      this.logger.error(
+        'Error generating AWB:',
+        error?.response?.data ?? error,
+      );
       if (error instanceof NotFoundException) {
         throw error;
       }
@@ -251,8 +252,8 @@ export class ShippingService {
           status: dto.status,
         },
       );
-    } catch (err) {
-      console.error('Error scheduling pickup', err?.response?.data ?? err);
+    } catch (err: any) {
+      this.logger.error('Error scheduling pickup', err?.response?.data ?? err);
       throw new InternalServerErrorException(
         err?.response?.data ?? 'Error scheduling pickup',
       );
@@ -264,8 +265,8 @@ export class ShippingService {
       return await this.shiprocketApiService.post('orders/cancel', {
         ids: dto.ids,
       });
-    } catch (err) {
-      console.error('Error cancelling order', err);
+    } catch (err: any) {
+      this.logger.error('Error cancelling order', err?.response?.data ?? err);
       throw new InternalServerErrorException('Error cancelling order');
     }
   }
@@ -282,7 +283,7 @@ export class ShippingService {
           },
         );
 
-      console.log('dataaa', data);
+      this.logger.log('dataaa', data);
 
       if (data?.success) {
         return {
@@ -296,7 +297,7 @@ export class ShippingService {
         };
       }
     } catch (err) {
-      console.error('Error validating pincode', err);
+      this.logger.error('Error validating pincode', err);
       throw new InternalServerErrorException('Error validating pincode');
     }
   }

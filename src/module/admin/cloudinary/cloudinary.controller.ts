@@ -42,7 +42,6 @@ export class CloudinaryController {
   @ApiResponse({ status: 500, description: 'Internal Server Error' })
   @UseInterceptors(FileInterceptor('image'))
   async uploadImage(@UploadedFile() file: Express.Multer.File) {
-    console.log(file, 'fifle');
     if (!file) {
       throw new BadRequestException('No file uploaded');
     }
