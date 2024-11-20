@@ -1,17 +1,20 @@
 import { NestFactory } from '@nestjs/core';
-import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
-import { AppModule } from './app.module';
+import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import * as cookieParser from 'cookie-parser';
-import { ValidationPipe } from './common/pipes/validation.pipe';
+import { AppModule } from './app.module';
+import { WINSTON_MODULE_NEST_PROVIDER } from 'nest-winston';
+import { CustomLoggerService } from './module/logger/logger.service';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule, {
     bodyParser: true,
   });
 
-  app.use(cookieParser());
-  app.useGlobalPipes(new ValidationPipe());
+  app.useLogger(app.get(WINSTON_MODULE_NEST_PROVIDER));
 
+  const logger = app.get(CustomLoggerService);
+
+  app.use(cookieParser());
   app.enableCors({
     origin: '*',
     methods: 'GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS',
@@ -20,11 +23,22 @@ async function bootstrap() {
     credentials: true,
   });
 
-  // Monitor memory usage
-  setInterval(() => {
+  // Memory monitoring with Winston
+  const memoryUsageLog = () => {
     const used = process.memoryUsage();
-    console.log(`Memory usage: ${Math.round(used.heapUsed / 1024 / 1024)}MB`);
-  }, 30000);
+    const memoryUsed = Math.round(used.heapUsed / 1024 / 1024);
+
+    if (memoryUsed > 400) {
+      logger.warn(`High Memory Usage: ${memoryUsed}MB`, 'MemoryMonitor');
+      if (global.gc) {
+        global.gc();
+      }
+    } else {
+      logger.debug(`Memory Usage: ${memoryUsed}MB`, 'MemoryMonitor');
+    }
+  };
+
+  setInterval(memoryUsageLog, 1000);
 
   const config = new DocumentBuilder()
     .addBearerAuth()

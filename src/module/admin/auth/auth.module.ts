@@ -27,6 +27,9 @@ import { TokensService } from './tokens.service';
         },
         privateKey: configService.jwtPrivateKey,
         publicKey: configService.jwtPublicKey,
+        verifyOptions: {
+          complete: false,
+        },
       }),
       inject: [AppConfigService],
     }),

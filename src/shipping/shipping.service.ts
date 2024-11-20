@@ -33,48 +33,12 @@ export class ShippingService {
   constructor(
     @Inject(forwardRef(() => CartService))
     private readonly cartService: CartService,
-    @Inject(forwardRef(() => OrderService))
-    private readonly orderService: OrderService,
-    private readonly httpService: HttpService,
+    // @Inject(forwardRef(() => OrderService))
+    // private readonly orderService: OrderService,
     private readonly prismaService: PrismaService,
     private readonly configService: ConfigService,
     private readonly shiprocketApiService: ShipRocketApiService,
   ) {}
-
-  // private async getValidToken(): Promise<string> {
-  //   const tokenEntity = await this.prismaService.shipRocketToken.findFirst({
-  //     where: { expiresAt: { gt: new Date() } },
-  //     orderBy: { expiresAt: 'desc' },
-  //   });
-
-  //   if (tokenEntity) {
-  //     return tokenEntity.token;
-  //   }
-
-  //   return this.generateNewToken();
-  // }
-
-  // private async generateNewToken(): Promise<string> {
-  //   const response = await this.httpService
-  //     .post('https://apiv2.shiprocket.in/v1/external/auth/login', {
-  //       email: this.configService.get('SHIPROCKET_EMAIL'),
-  //       password: this.configService.get('SHIPROCKET_PASSWORD'),
-  //     })
-  //     .toPromise();
-
-  //   const token = response.data.token;
-  //   const expiresAt = new Date();
-  //   expiresAt.setDate(expiresAt.getDate() + 10);
-
-  //   await this.prismaService.shipRocketToken.create({
-  //     data: {
-  //       token,
-  //       expiresAt,
-  //     },
-  //   });
-
-  //   return token;
-  // }
 
   async getCharges(userId: string, cartId: string, data: CalculateShippingDto) {
     try {
@@ -182,7 +146,7 @@ export class ShippingService {
 
         return totalCharges;
       } else {
-        await this.prismaService.cart.update({
+        return await this.prismaService.cart.update({
           where: { id: cartId },
           data: {
             shippingCost: 0,

@@ -14,7 +14,7 @@ import { makeResponse } from '../types/responce.type';
 @Injectable()
 @Catch(HttpException)
 export class HttpExceptionFilter implements ExceptionFilter {
-  private readonly logger = new Logger('Interceptor');
+  private readonly logger = new Logger('HttpExceptionFilter');
 
   catch(exception: HttpException, host: ArgumentsHost) {
     const ctx = host.switchToHttp();
@@ -24,7 +24,6 @@ export class HttpExceptionFilter implements ExceptionFilter {
       exception instanceof HttpException
         ? exception.getStatus()
         : HttpStatus.INTERNAL_SERVER_ERROR;
-
     this.logger.error(exception);
 
     const res = exception.getResponse() as

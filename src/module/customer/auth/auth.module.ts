@@ -27,6 +27,9 @@ import { JwtStrategy } from './jwt.strategy';
         },
         privateKey: configService.jwtPrivateKey,
         publicKey: configService.jwtPublicKey,
+        verifyOptions: {
+          complete: false,
+        },
       }),
       inject: [AppConfigService],
     }),
