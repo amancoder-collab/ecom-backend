@@ -11,7 +11,9 @@ import { IPickupLocationsResponse } from './interface/shiprocket-responses';
 @UseGuards(JwtAuthGuard)
 @Controller('customer/shipping')
 export class ShippingController {
-  constructor(private readonly shippingService: ShippingService) {}
+  constructor(
+    private readonly shippingService: ShippingService,
+  ) {}
 
   @Get('pickup-locations')
   async getAllPickupLocations(): Promise<IPickupLocationsResponse['data']> {

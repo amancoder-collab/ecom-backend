@@ -135,4 +135,8 @@ export class AppConfigService {
   get cloudinaryApiSecret() {
     return this.get<string>('app.cloudinaryApiSecret');
   }
+
+  get rabbitMQUrl() {
+    return this.get<string>('app.rabbitMQUrl');
+  }
 }

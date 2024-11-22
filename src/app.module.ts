@@ -11,9 +11,10 @@ import { TimeoutInterceptor } from './common/interceptor/timeout.interceptor';
 import { AdminModule } from './module/admin/admin.module';
 import { CustomerModule } from './module/customer/customer.module';
 import { LoggerModule } from './module/logger/logger.module';
+import { RabbitMQModule } from './rabbitmq/rabbitmq.module';
 
 @Module({
-  imports: [CustomerModule, LoggerModule, AdminModule],
+  imports: [RabbitMQModule, CustomerModule, LoggerModule, AdminModule],
   controllers: [AppController],
   providers: [
     { provide: APP_INTERCEPTOR, useClass: ResponseInterceptor },

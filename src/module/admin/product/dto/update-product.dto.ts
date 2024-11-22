@@ -1,17 +1,16 @@
-import { ApiProperty } from '@nestjs/swagger';
-import { Type } from 'class-transformer';
+import { ApiProperty } from "@nestjs/swagger";
+import { Type } from "class-transformer";
 import {
   IsArray,
-  IsNotEmpty,
   IsNumber,
   IsOptional,
   IsString,
   ValidateNested,
-} from 'class-validator';
+} from "class-validator";
 import {
   CreateProductAttributeDto,
   CreateProductAttributeValueDto,
-} from '../../product-attribute/dto/create-product-attribute.dto';
+} from "../../product-attribute/dto/create-product-attribute.dto";
 
 class UpdateVariantDto {
   @IsOptional()
@@ -84,7 +83,7 @@ export class UpdateProductDto {
   description?: string;
 
   @ApiProperty({
-    description: 'thumbnail of product',
+    description: "thumbnail of product",
   })
   @IsString()
   @IsOptional()

@@ -2,15 +2,15 @@ import {
   BadRequestException,
   Injectable,
   NotFoundException,
-} from '@nestjs/common';
-import { Role } from '@prisma/client';
-import { ClientLogError } from 'src/common/helper/error_description';
-import { Pagination } from 'src/lib/pagination/paginate';
-import { PrismaService } from 'src/module/prisma/prisma.service';
-import { CreateProductDto } from './dto/create-product.dto';
-import { UpdateProductDto } from './dto/update-product.dto';
-import { CreateVariantDto } from './dto/create-variant.dto';
-import { UpdateVariantDto } from './dto/update-variant.dto';
+} from "@nestjs/common";
+import { Role } from "@prisma/client";
+import { ClientLogError } from "src/common/helper/error_description";
+import { Pagination } from "src/lib/pagination/paginate";
+import { PrismaService } from "src/module/prisma/prisma.service";
+import { CreateProductDto } from "./dto/create-product.dto";
+import { UpdateProductDto } from "./dto/update-product.dto";
+import { CreateVariantDto } from "./dto/create-variant.dto";
+import { UpdateVariantDto } from "./dto/update-variant.dto";
 
 @Injectable()
 export class ProductService {
@@ -94,7 +94,7 @@ export class ProductService {
     });
 
     if (!variant) {
-      throw new NotFoundException('Variant not found');
+      throw new NotFoundException("Variant not found");
     }
 
     return this.prismaService.productVariant.update({
@@ -165,88 +165,89 @@ export class ProductService {
     if (!dto.hasVariants) {
       if (!dto.weight) {
         throw new BadRequestException(
-          'Weight is required when no variants are provided',
+          "Weight is required when no variants are provided",
         );
       }
 
       if (!dto.width) {
         throw new BadRequestException(
-          'Width is required when no variants are provided',
+          "Width is required when no variants are provided",
         );
       }
 
       if (!dto.height) {
         throw new BadRequestException(
-          'Height is required when no variants are provided',
+          "Height is required when no variants are provided",
         );
       }
 
       if (!dto.length) {
         throw new BadRequestException(
-          'Length is required when no variants are provided',
+          "Length is required when no variants are provided",
         );
       }
 
       if (!dto.price) {
         throw new BadRequestException(
-          'Price is required when no variants are provided',
+          "Price is required when no variants are provided",
         );
       }
 
       if (!dto.thumbnail || !dto.images || dto.images.length === 0) {
         throw new BadRequestException(
-          'Thumbnail and images are required when no variants are provided',
+          "Thumbnail and images are required when no variants are provided",
         );
       }
     } else {
       if (dto.variants.length === 0) {
-        throw new BadRequestException('Variants are required');
+        throw new BadRequestException("Variants are required");
       }
     }
 
-    return await this.prismaService.$transaction(async (prisma) => {
-      const product = await this.prismaService.product.create({
-        data: {
-          name: dto.name,
-          description: dto.description,
-          hasVariants: dto.hasVariants,
-          isActive: dto.isActive,
-          ...(!dto.hasVariants && {
-            price: dto.price,
-            discountedPrice: dto.discountedPrice,
-            weight: dto.weight,
-            width: dto.width,
-            height: dto.height,
-            length: dto.length,
-            stock: dto.stock,
-            thumbnail: dto.thumbnail,
-            images: dto.images,
-          }),
-          seller: {
-            connect: {
-              id: sellerId,
-            },
+    const product = await this.prismaService.product.create({
+      data: {
+        name: dto.name,
+        description: dto.description,
+        hasVariants: dto.hasVariants,
+        isActive: dto.isActive,
+        ...(!dto.hasVariants && {
+          price: dto.price,
+          discountedPrice: dto.discountedPrice,
+          weight: dto.weight,
+          width: dto.width,
+          height: dto.height,
+          length: dto.length,
+          stock: dto.stock,
+          thumbnail: dto.thumbnail,
+          images: dto.images,
+        }),
+        seller: {
+          connect: {
+            id: sellerId,
           },
         },
-      });
+      },
+    });
 
-      if (dto.hasVariants) {
-        const attributes = await Promise.all(
-          dto.attributes.map((attr) =>
-            prisma.productAttribute.create({
-              data: {
-                title: attr.title,
-                product: {
-                  connect: { id: product.id },
-                },
+    if (dto.hasVariants) {
+      const attributes = await Promise.all(
+        dto.attributes.map((attr) =>
+          this.prismaService.productAttribute.create({
+            data: {
+              title: attr.title,
+              product: {
+                connect: { id: product.id },
               },
-            }),
-          ),
-        );
+            },
+          }),
+        ),
+      );
 
-        await Promise.all(
-          dto.variants.map((variant) =>
-            prisma.productVariant.create({
+      await Promise.all(
+        dto.variants.map(async (variant, index) => {
+          if (index > 1) return;
+          const createdVariant = await this.prismaService.productVariant.create(
+            {
               data: {
                 product: {
                   connect: {
@@ -264,37 +265,176 @@ export class ProductService {
                 price: variant.price,
                 isActive: variant.isActive,
                 discountedPrice: variant.discountedPrice,
-                attributeValues: {
-                  create: variant.attributes.map((attr) => ({
-                    value: attr.value,
-                    attribute: {
-                      connect: {
-                        id: attributes.find((a) => a.title === attr.title)?.id,
+              },
+            },
+          );
+
+          await Promise.all(
+            variant.attributes.map(async (attr) => {
+              const existingAttribute =
+                await this.prismaService.productAttribute.findFirst({
+                  where: { title: attr.title, productId: product.id },
+                });
+
+              console.log("Existing Attribute", existingAttribute);
+
+              if (!existingAttribute) {
+                await this.prismaService.productVariant.update({
+                  where: { id: createdVariant.id },
+                  data: {
+                    attributeValues: {
+                      create: {
+                        value: attr.value,
+                        attribute: {
+                          create: {
+                            title: attr.title,
+                            product: {
+                              connect: {
+                                id: product.id,
+                              },
+                            },
+                          },
+                        },
                       },
                     },
-                  })),
-                },
-              },
-            }),
-          ),
-        );
-      }
+                  },
+                });
+              } else {
+                const existingAttributeValue =
+                  await this.prismaService.productAttributeValue.findFirst({
+                    where: {
+                      value: attr.value,
+                      attributeId: existingAttribute.id,
+                    },
+                  });
 
-      return await prisma.product.findUnique({
-        where: { id: product.id },
-        include: {
-          variants: {
-            include: {
-              attributeValues: {
-                include: {
-                  attribute: true,
-                },
+                const allAttributeValues =
+                  await this.prismaService.productAttributeValue.findMany({
+                    where: {
+                      attributeId: existingAttribute.id,
+                    },
+                  });
+
+                console.log("All Attribute Values", allAttributeValues);
+
+                console.log(
+                  "Existing Attribute Value",
+                  existingAttributeValue,
+                  "For Attribute ID",
+                  existingAttribute.id,
+                  "For Value",
+                  attr.value,
+                  "For attr",
+                  attr,
+                );
+
+                await this.prismaService.productVariant.update({
+                  where: { id: createdVariant.id },
+                  data: {
+                    ...(!existingAttributeValue
+                      ? {
+                          attributeValues: {
+                            create: {
+                              value: attr.value,
+                              attribute: {
+                                connect: {
+                                  id: existingAttribute.id,
+                                },
+                              },
+                            },
+                          },
+                        }
+                      : {
+                          attributeValues: {
+                            connect: { id: existingAttributeValue.id },
+                          },
+                        }),
+                  },
+                });
+              }
+            }),
+          );
+
+          // Get existing attribute values
+          // const existingAttributeValues =
+          //   await prisma.productAttributeValue.findMany({
+          //     where: {
+          //       value: {
+          //         in: variant.attributes.map((attr) => attr.value),
+          //       },
+          //       attribute: {
+          //         title: {
+          //           in: variant.attributes.map((attr) => attr.title),
+          //         },
+          //       },
+          //     },
+          //     include: {
+          //       attribute: true,
+          //     },
+          //   });
+
+          // const { existingAttributes, newAttributes } =
+          //   variant.attributes.reduce(
+          //     (acc, attr) => {
+          //       const existingValue = existingAttributeValues.find(
+          //         (existing) =>
+          //           existing.value === attr.value &&
+          //           existing.attribute.title === attr.title,
+          //       );
+
+          //       if (existingValue) {
+          //         acc.existingAttributes.push({
+          //           value: attr.value,
+          //           attributeId: existingValue.attributeId,
+          //           id: existingValue.id,
+          //         });
+          //       } else {
+          //         acc.newAttributes.push(attr);
+          //       }
+
+          //       return acc;
+          //     },
+          //     { existingAttributes: [], newAttributes: [] },
+          //   );
+
+          // console.log("Existing Attributes Values", existingAttributeValues);
+          // console.log("Attributes to connect:", existingAttributes);
+          // console.log("Attributes to create:", newAttributes);
+
+          // if (existingAttributes.length > 0) {
+          //   await prisma.productVariant.update({
+          //     where: { id: createdVariant.id },
+          //     data: {
+          //       attributeValues: {
+          //         connect: existingAttributeValues.map((attr) => ({
+          //           id: attr.id,
+          //         })),
+          //       },
+          //     },
+          //   });
+          // }
+        }),
+      );
+    }
+
+    return await this.prismaService.product.findUnique({
+      where: { id: product.id },
+      include: {
+        variants: {
+          include: {
+            attributeValues: {
+              include: {
+                attribute: true,
               },
             },
           },
-          attributes: true,
         },
-      });
+        attributes: {
+          include: {
+            values: true,
+          },
+        },
+      },
     });
   }
 
@@ -305,16 +445,16 @@ export class ProductService {
     });
 
     if (!product) {
-      throw new NotFoundException('Product not found');
+      throw new NotFoundException("Product not found");
     }
 
     if (product.hasVariants) {
       if (!variantId) {
-        throw new BadRequestException('Variant ID required for this product');
+        throw new BadRequestException("Variant ID required for this product");
       }
       const variant = product.variants.find((v) => v.id === variantId);
       if (!variant) {
-        throw new NotFoundException('Variant not found');
+        throw new NotFoundException("Variant not found");
       }
       return variant.stock;
     }
@@ -328,12 +468,12 @@ export class ProductService {
     });
 
     if (!product) {
-      throw new NotFoundException('Product not found');
+      throw new NotFoundException("Product not found");
     }
 
     if (product.hasVariants) {
       if (!variantId) {
-        throw new BadRequestException('Variant ID required for this product');
+        throw new BadRequestException("Variant ID required for this product");
       }
       return this.prismaService.productVariant.update({
         where: { id: variantId },
@@ -361,7 +501,7 @@ export class ProductService {
     });
 
     if (!product) {
-      throw new NotFoundException('Product not found');
+      throw new NotFoundException("Product not found");
     }
 
     return await this.prismaService.$transaction(async (prisma) => {
@@ -388,9 +528,15 @@ export class ProductService {
         await Promise.all(
           dto.attributes.map(async (attr) => {
             const existingAttribute = await prisma.productAttribute.findFirst({
-              where: { title: attr.title },
+              where: { title: attr.title, productId: productId },
             });
 
+            console.log(
+              "Existing Attribute",
+              existingAttribute,
+              "FOR TITLE",
+              attr.title,
+            );
             if (existingAttribute) {
               await Promise.all(
                 attr.values.map(async (e) => {
@@ -433,53 +579,51 @@ export class ProductService {
                 },
               },
             );
-
-            if (variant.id) {
-              await prisma.productVariant.update({
-                where: { id: variant.id },
-                data: {
-                  sku: variant.sku,
-                  weight: variant.weight,
-                  width: variant.width,
-                  height: variant.height,
-                  length: variant.length,
-                  stock: variant.stock,
-                  thumbnail: variant.thumbnail,
-                  images: variant.images,
-                  price: variant.price,
-                  discountedPrice: variant.discountedPrice,
-                  attributeValues: {
-                    connect: attributeValues.map((attr) => ({
-                      id: attr.id,
-                    })),
-                  },
+            await prisma.productVariant.upsert({
+              where: { id: variant.id },
+              create: {
+                sku: variant.sku,
+                weight: variant.weight,
+                width: variant.width,
+                height: variant.height,
+                length: variant.length,
+                images: variant.images,
+                stock: variant.stock,
+                thumbnail: variant.thumbnail,
+                price: variant.price,
+                discountedPrice: variant.discountedPrice,
+                product: { connect: { id: productId } },
+                attributeValues: {
+                  connect: attributeValues.map((attr) => ({
+                    id: attr.id,
+                  })),
                 },
-              });
-            } else {
-              await prisma.productVariant.create({
-                data: {
-                  sku: variant.sku,
-                  weight: variant.weight,
-                  width: variant.width,
-                  height: variant.height,
-                  length: variant.length,
-                  images: variant.images,
-                  stock: variant.stock,
-                  thumbnail: variant.thumbnail,
-                  price: variant.price,
-                  discountedPrice: variant.discountedPrice,
-                  product: { connect: { id: productId } },
-                  attributeValues: {
-                    connect: attributeValues.map((attr) => ({
-                      id: attr.id,
-                    })),
-                  },
+              },
+              update: {
+                sku: variant.sku,
+                weight: variant.weight,
+                width: variant.width,
+                height: variant.height,
+                length: variant.length,
+                stock: variant.stock,
+                thumbnail: variant.thumbnail,
+                images: variant.images,
+                price: variant.price,
+                discountedPrice: variant.discountedPrice,
+                attributeValues: {
+                  connect: attributeValues.map((attr) => ({
+                    id: attr.id,
+                  })),
                 },
-              });
-            }
+              },
+            });
           }),
         );
       }
+      return await prisma.product.findUnique({
+        where: { id: productId },
+        include: { variants: true, attributes: true },
+      });
     });
   }
 

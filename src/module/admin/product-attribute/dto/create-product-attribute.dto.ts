@@ -1,40 +1,49 @@
-import { IsString, IsNotEmpty, IsArray, ValidateNested } from 'class-validator';
-import { ApiProperty } from '@nestjs/swagger';
+import { ApiProperty } from "@nestjs/swagger";
+import { Transform } from "class-transformer";
+import { ArrayUnique, IsArray, IsNotEmpty, IsString } from "class-validator";
 
 export class CreateProductAttributeDto {
   @ApiProperty({
-    example: 'Color',
-    description: 'The title of the attribute',
+    example: "color",
+    description: "The title of the attribute",
   })
   @IsString()
   @IsNotEmpty()
+  @Transform(({ value }) => value.trim())
+  @Transform(({ value }) => value.toLowerCase())
   title: string;
 
   @ApiProperty({
-    example: ['Red', 'Blue', 'Green'],
-    description: 'The values of the attribute',
+    example: ["red", "blue", "green"],
+    description: "The values of the attribute",
     type: [String],
   })
   @IsArray()
-  // @ValidateNested({ each: true })
   @IsNotEmpty()
+  @Transform(({ value }) => value.map((e: string) => e.trim()))
+  @Transform(({ value }) => value.map((e: string) => e.toLowerCase()))
+  @ArrayUnique({ message: "All attribute values must be unique" }) // Validate uniqueness
   values: string[];
 }
 
 export class CreateProductAttributeValueDto {
   @ApiProperty({
-    example: 'Color',
-    description: 'The title of the attribute',
+    example: "color",
+    description: "The title of the attribute",
   })
   @IsString()
   @IsNotEmpty()
+  @Transform(({ value }) => value.trim())
+  @Transform(({ value }) => value.toLowerCase())
   title: string;
 
   @ApiProperty({
-    example: 'Red',
-    description: 'The value of the attribute',
+    example: "red",
+    description: "The value of the attribute",
   })
   @IsString()
   @IsNotEmpty()
+  @Transform(({ value }) => value.trim())
+  @Transform(({ value }) => value.toLowerCase())
   value: string;
 }

@@ -1,9 +1,9 @@
+import { Logger } from '@nestjs/common';
 import { NestFactory } from '@nestjs/core';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import * as cookieParser from 'cookie-parser';
 import { WINSTON_MODULE_NEST_PROVIDER } from 'nest-winston';
 import { AppModule } from './app.module';
-import { CustomLogger } from './module/logger/logger.service';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule, {
@@ -12,7 +12,7 @@ async function bootstrap() {
 
   app.useLogger(app.get(WINSTON_MODULE_NEST_PROVIDER));
 
-  const logger = app.get(CustomLogger);
+  const logger = new Logger();
 
   app.use(cookieParser());
   app.enableCors({
@@ -38,7 +38,7 @@ async function bootstrap() {
     }
   };
 
-  setInterval(memoryUsageLog, 3000);
+  setInterval(memoryUsageLog, 5000);
 
   const config = new DocumentBuilder()
     .addBearerAuth()

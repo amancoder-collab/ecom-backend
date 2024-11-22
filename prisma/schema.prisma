@@ -59,14 +59,15 @@ model User {
   createdAt   DateTime  @default(now()) @map("created_at")
   updatedAt   DateTime  @updatedAt @map("updated_at")
 
-  addresses   Address[]
-  products    Product[]
-  reviews     Review[]
-  carts       Cart[]
-  wishlists   Wishlist[]
-  otps        Otp[]
-  couponsUsBy CouponUsage[]
-  orders      Order[]
+  addresses    Address[]
+  products     Product[]
+  reviews      Review[]
+  carts        Cart[]
+  wishlists    Wishlist[]
+  otps         Otp[]
+  couponsUsBy  CouponUsage[]
+  orders       Order[]
+  OrderAddress OrderAddress[]
 
   @@map("users")
 }
@@ -146,8 +147,8 @@ model ProductAttribute {
 
 model ProductAttributeValue {
   id          String   @id @default(cuid())
-  attributeId String   @map("attribute_id")
   value       String
+  attributeId String   @map("attribute_id")
   variantId   String?  @map("variant_id")
   createdAt   DateTime @default(now()) @map("created_at")
   updatedAt   DateTime @updatedAt @map("updated_at")
@@ -178,10 +179,8 @@ model Address {
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  billingCarts   Cart[]  @relation("BillingAddress")
-  shippingCarts  Cart[]  @relation("ShippingAddress")
-  billingOrders  Order[] @relation("BillingAddress")
-  shippingOrders Order[] @relation("ShippingAddress")
+  billingCarts  Cart[] @relation("BillingAddress")
+  shippingCarts Cart[] @relation("ShippingAddress")
 
   @@map("addresses")
 }
@@ -243,9 +242,9 @@ model CartItem {
 
 model Order {
   id                    String   @id @default(cuid())
-  customOrderId         String   @unique @map("custom_order_id")
-  shipRocketOrderId     String   @unique @map("ship_rocket_order_id")
-  shipmentId            String   @unique @map("shipment_id")
+  customOrderId         String?  @unique @map("custom_order_id")
+  shipRocketOrderId     String?  @unique @map("ship_rocket_order_id")
+  shipmentId            String?  @unique @map("shipment_id")
   awbCode               String?  @map("awb_code")
   courierCompanyId      Int?     @map("courier_company_id")
   userId                String   @map("user_id")
@@ -262,14 +261,39 @@ model Order {
   createdAt             DateTime @default(now()) @map("created_at")
   updatedAt             DateTime @updatedAt @map("updated_at")
 
-  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  payment         Payment? @relation(fields: [paymentId], references: [id])
-  billingAddress  Address? @relation("BillingAddress", fields: [billingAddressId], references: [id], onDelete: Cascade)
-  shippingAddress Address? @relation("ShippingAddress", fields: [shippingAddressId], references: [id], onDelete: Cascade)
+  user            User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  payment         Payment?      @relation(fields: [paymentId], references: [id])
+  billingAddress  OrderAddress? @relation("BillingAddress", fields: [billingAddressId], references: [id], onDelete: Cascade)
+  shippingAddress OrderAddress? @relation("ShippingAddress", fields: [shippingAddressId], references: [id], onDelete: Cascade)
 
   orderItems OrderItem[]
 
   @@map("orders")
+}
+
+model OrderAddress {
+  id        String   @id @default(cuid())
+  userId    String   @map("user_id")
+  firstName String   @map("first_name")
+  lastName  String   @map("last_name")
+  email     String
+  phone     String
+  address   String
+  address2  String?  @map("address_2")
+  city      String
+  state     String
+  country   String
+  pincode   Int
+  isDefault Boolean  @default(false) @map("is_default")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  billingOrders  Order[] @relation("BillingAddress")
+  shippingOrders Order[] @relation("ShippingAddress")
+
+  @@map("order_addresses")
 }
 
 model OrderItem {

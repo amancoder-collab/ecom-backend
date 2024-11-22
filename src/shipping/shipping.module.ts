@@ -5,6 +5,7 @@ import { OrderModule } from 'src/module/customer/order/order.module';
 import { ShippingController } from './shipping.controller';
 import { ShippingService } from './shipping.service';
 import { ShipRocketApiService } from './shiprocket-api.service';
+import { AxiosService } from './axios/axios.service';
 
 @Module({
   imports: [
@@ -13,7 +14,7 @@ import { ShipRocketApiService } from './shiprocket-api.service';
     forwardRef(() => OrderModule),
   ],
   controllers: [ShippingController],
-  providers: [ShippingService, ShipRocketApiService],
+  providers: [ShippingService, ShipRocketApiService, AxiosService],
   exports: [ShippingService],
 })
 export class ShippingModule {}

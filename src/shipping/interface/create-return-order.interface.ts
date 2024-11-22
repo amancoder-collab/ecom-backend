@@ -1,0 +1,40 @@
+export interface ICreateReturnOrder {
+  order_id: string;
+  order_date: string;
+  channel_id: string;
+  pickup_customer_name: string;
+  pickup_last_name: string;
+  company_name: string;
+  pickup_address: string;
+  pickup_address_2: string;
+  pickup_city: string;
+  pickup_state: string;
+  pickup_country: string;
+  pickup_pincode: number;
+  pickup_email: string;
+  pickup_phone: string;
+  pickup_isd_code: string;
+  shipping_customer_name: string;
+  shipping_last_name: string;
+  shipping_address: string;
+  shipping_address_2: string;
+  shipping_city: string;
+  shipping_country: string;
+  shipping_pincode: number;
+  shipping_state: string;
+  shipping_email: string;
+  shipping_isd_code: string;
+  shipping_phone: string;
+  order_items: {
+    sku: string;
+    name: string;
+    units: number;
+  }[];
+  payment_method: string;
+  total_discount: string;
+  sub_total: number;
+  length: number;
+  breadth: number;
+  height: number;
+  weight: number;
+}

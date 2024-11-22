@@ -1,216 +1,118 @@
+import { Injectable } from '@nestjs/common';
+import { AxiosService } from './axios/axios.service';
+import { ICourierServiceabilityRequest } from './axios/types/courier-serviceability';
+import { CancelOrderDto } from './dto/cancel-order.dto';
+import { CreateShipRocketOrderDto } from './dto/create-order.dto';
 import {
-  Injectable,
-  InternalServerErrorException,
-  Logger,
-  NotFoundException,
-  OnModuleInit,
-} from '@nestjs/common';
-import axios, { AxiosError, AxiosInstance, AxiosRequestConfig } from 'axios';
-import { AppConfigService } from 'src/lib/config/config.service';
-import { PrismaService } from 'src/module/prisma/prisma.service';
+  GenerateAWBDto,
+  GenerateAWBForReturnDto,
+} from './dto/generate-awb.dto';
+import { SchedulePickupDto } from './dto/schedule-pickup.dto';
+import { ICreateReturnOrder } from './interface/create-return-order.interface';
+import {
+  ICourierServiceabilityResponse,
+  ICreateReturnOrderResponse,
+  ICreateShipRocketOrderResponse,
+  IPickupLocationsResponse,
+  IPincodeValidationResponse,
+  ISchedulePickupResponse,
+  IShipRocketGenerateAWBResponse,
+  IShipRocketOrdersResponse,
+} from './interface/shiprocket-responses';
 
 @Injectable()
-export class ShipRocketApiService implements OnModuleInit {
-  private readonly axiosInstance: AxiosInstance;
-  private readonly logger = new Logger('ShipRocketApiService');
-  private activeRequests = new Map<
-    string,
-    {
-      method: string;
-      url: string;
-      startTime: number;
-    }
-  >();
-  private isInitialized = false;
+export class ShipRocketApiService {
+  constructor(private readonly axiosService: AxiosService) {}
 
-  constructor(
-    private readonly configService: AppConfigService,
-    private readonly prismaService: PrismaService,
-  ) {
-    this.axiosInstance = axios.create({
-      baseURL: this.configService.shiprocketApiUrl,
-      headers: {
-        'Content-Type': 'application/json',
+  async getCourierServiceability(data: ICourierServiceabilityRequest) {
+    return await this.axiosService.get<ICourierServiceabilityResponse>(
+      '/courier/serviceability/',
+      {
+        params: {
+          pickup_postcode: data.pickup_postcode,
+          weight: data.weight,
+          delivery_postcode: data.delivery_postcode,
+          cod: data.cod,
+        },
       },
-      timeout: 10000,
-      timeoutErrorMessage: 'ShipRocket API request timed out',
+    );
+  }
+
+  async getAllPickupLocations(): Promise<IPickupLocationsResponse['data']> {
+    const responseData = await this.axiosService.get<IPickupLocationsResponse>(
+      '/settings/company/pickup',
+    );
+
+    return responseData.data;
+  }
+
+  async createOrder(data: CreateShipRocketOrderDto) {
+    return await this.axiosService.post<ICreateShipRocketOrderResponse>(
+      '/orders/create/adhoc',
+      data,
+    );
+  }
+
+  async getOrders() {
+    return await this.axiosService.get<IShipRocketOrdersResponse>('/orders');
+  }
+
+  async generateAWBNumber(data: GenerateAWBDto) {
+    const responseData =
+      await this.axiosService.post<IShipRocketGenerateAWBResponse>(
+        'courier/assign/awb',
+        {
+          shipment_id: data.shipmentId,
+          courier_id: data.courierId,
+        },
+      );
+
+    return responseData.response.data;
+  }
+
+  async createReturnOrder(data: ICreateReturnOrder) {
+    return await this.axiosService.post<ICreateReturnOrderResponse>(
+      '/orders/create/return',
+      data,
+    );
+  }
+
+  async generateAWBNumberForReturn(data: GenerateAWBForReturnDto) {
+    return await this.axiosService.post<IShipRocketGenerateAWBResponse>(
+      'courier/assign/awb/return',
+      {
+        shipment_id: data.shipmentId,
+        courier_id: data.courierId,
+        is_return: data.isReturn,
+      },
+    );
+  }
+
+  async schedulePickup(data: SchedulePickupDto) {
+    return await this.axiosService.post<ISchedulePickupResponse>(
+      'courier/generate/pickup',
+      {
+        shipment_id: data.shipmentId,
+        pickup_date: data.pickup_date,
+        status: data.status,
+      },
+    );
+  }
+
+  async cancelOrder(data: CancelOrderDto) {
+    return await this.axiosService.post('/orders/cancel', {
+      ids: data.ids,
     });
+  }
 
-    this.axiosInstance.interceptors.request.use(
-      async (config) => {
-        // Ensure service is initialized before making any request
-        if (!this.isInitialized && config.url !== '/auth/login') {
-          await this.initializeService();
-        }
-
-        const requestId = Math.random().toString(36).substring(7);
-        this.activeRequests.set(requestId, {
-          method: config.method?.toUpperCase() || 'UNKNOWN',
-          url: config.url || 'UNKNOWN',
-          startTime: Date.now(),
-        });
-
-        // Log current active requests
-        const now = Date.now();
-        this.logger.log(
-          Array.from(this.activeRequests.entries()).map(([id, req]) => ({
-            id,
-            method: req.method,
-            url: req.url,
-            duration: `${(now - req.startTime) / 1000}s`,
-          })),
-        );
-
-        // Only add auth token if not a login request
-        if (config.url !== '/auth/login') {
-          const token = await this.getValidToken();
-          config.headers['Authorization'] = `Bearer ${token}`;
-        }
-
-        config.headers['X-Request-ID'] = requestId;
-        return config;
-      },
-      (error) => Promise.reject(error),
-    );
-
-    this.axiosInstance.interceptors.response.use(
-      (response) => {
-        const requestId = response.config.headers['X-Request-ID'];
-        if (requestId) {
-          this.activeRequests.delete(requestId);
-        }
-        return response;
-      },
-      (error) => {
-        const requestId = error.config?.headers['X-Request-ID'];
-        if (requestId) {
-          this.activeRequests.delete(requestId);
-        }
-        return Promise.reject(error);
+  async getPostCodeDetails(postcode: string) {
+    return await this.axiosService.get<IPincodeValidationResponse>(
+      '/open/postcode/details',
+      {
+        params: {
+          postcode: postcode,
+        },
       },
     );
-  }
-
-  async onModuleInit() {
-    await this.initializeService();
-  }
-
-  private async initializeService() {
-    if (this.isInitialized) return;
-
-    try {
-      this.logger.log('Initializing ShipRocket service...');
-      await this.getValidToken(); // This will either find or generate a token
-      this.isInitialized = true;
-      this.logger.log('ShipRocket service initialized successfully');
-    } catch (error) {
-      this.logger.error(error);
-      // throw new InternalServerErrorException(error);
-    }
-  }
-
-  async get<T>(url: string, config?: AxiosRequestConfig<any>): Promise<T> {
-    try {
-      const response = await this.axiosInstance.get<T>(url, config);
-      return response.data;
-    } catch (error) {
-      this.handleAxiosError(error);
-    }
-  }
-
-  async post<T>(
-    url: string,
-    data: any,
-    config?: AxiosRequestConfig<any>,
-  ): Promise<T> {
-    try {
-      const response = await this.axiosInstance.post<T>(url, data, config);
-      return response.data;
-    } catch (error) {
-      this.handleAxiosError(error);
-    }
-  }
-
-  async put<T>(
-    url: string,
-    data?: any,
-    config?: AxiosRequestConfig<any>,
-  ): Promise<T> {
-    try {
-      const response = await this.axiosInstance.put<T>(url, data, config);
-      return response.data;
-    } catch (error) {
-      this.handleAxiosError(error);
-    }
-  }
-
-  async delete<T>(url: string, config?: AxiosRequestConfig<any>): Promise<T> {
-    try {
-      const response = await this.axiosInstance.delete<T>(url, config);
-      return response.data;
-    } catch (error) {
-      this.handleAxiosError(error);
-    }
-  }
-
-  private handleAxiosError(error: unknown): never {
-    if (axios.isAxiosError(error)) {
-      const axiosError = error as AxiosError<any>;
-      this.logger.error(
-        'ShipRocket API error:',
-        axiosError.response?.data || axiosError.message,
-      );
-
-      if (axiosError.response?.status === 404) {
-        throw new NotFoundException('ShipRocket resource not found');
-      }
-
-      throw new InternalServerErrorException(
-        `ShipRocket API error: ${axiosError.response?.data?.message || axiosError.message}`,
-      );
-    }
-
-    this.logger.error('Unexpected error:', error);
-    throw new InternalServerErrorException('An unexpected error occurred');
-  }
-
-  private async generateNewToken(): Promise<string> {
-    // const response = await this.axiosInstance.post('/auth/login', {
-    //   email: this.configService.shiprocketEmail,
-    //   password: this.configService.shiprocketPassword,
-    // });
-    // this.logger.log('response', response);
-    // if (!response?.data?.token) {
-    //   throw new InternalServerErrorException('Failed to get shiprocket token');
-    // }
-    // const token = response.data.token;
-    // const expiresAt = new Date();
-    // expiresAt.setDate(expiresAt.getDate() + 10);
-    // await this.prismaService.shipRocketToken.create({
-    //   data: {
-    //     token,
-    //     expiresAt,
-    //   },
-    // });
-    // return token;
-    throw new InternalServerErrorException('Failed to get shiprocket token');
-  }
-
-  private async getValidToken(): Promise<string> {
-    try {
-      const tokenEntity = await this.prismaService.shipRocketToken.findFirst({
-        where: { expiresAt: { gt: new Date() } },
-        orderBy: { expiresAt: 'desc' },
-      });
-
-      if (tokenEntity) {
-        return tokenEntity.token;
-      }
-
-      return await this.generateNewToken();
-    } catch (error: any) {
-      this.logger.error('Error getting valid token:', error?.response?.data);
-      throw new InternalServerErrorException(error?.response?.data);
-    }
   }
 }

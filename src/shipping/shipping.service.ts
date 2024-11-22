@@ -11,21 +11,21 @@ import { ConfigService } from '@nestjs/config';
 import { CartService } from 'src/module/customer/cart/cart.service';
 import { PrismaService } from 'src/module/prisma/prisma.service';
 import { CalculateShippingDto } from './dto/calculate-shipping.dto';
-import { CancelOrderDto } from './dto/cancel-order.dto';
 import { CreateShipRocketOrderDto } from './dto/create-order.dto';
 import { GenerateAWBDto } from './dto/generate-awb.dto';
-import { SchedulePickupDto } from './dto/schedule-pickup.dto';
 import {
   ICourierCompany,
-  ICourierServiceabilityResponse,
   ICreateShipRocketOrderResponse,
-  IPickupLocationsResponse,
-  IPincodeValidationResponse,
-  ISchedulePickupResponse,
-  IShipRocketGenerateAWBResponse,
-  IShipRocketOrdersResponse,
 } from './interface/shiprocket-responses';
 import { ShipRocketApiService } from './shiprocket-api.service';
+import {
+  Address,
+  Cart,
+  CartItem,
+  Product,
+  ProductVariant,
+} from '@prisma/client';
+import { OrderService } from 'src/module/customer/order/order.service';
 
 @Injectable()
 export class ShippingService {
@@ -33,10 +33,146 @@ export class ShippingService {
   constructor(
     @Inject(forwardRef(() => CartService))
     private readonly cartService: CartService,
+    @Inject(forwardRef(() => OrderService))
+    private readonly orderService: OrderService,
     private readonly prismaService: PrismaService,
-    private readonly configService: ConfigService,
     private readonly shiprocketApiService: ShipRocketApiService,
   ) {}
+
+  private async generateUniqueOrderId(): Promise<string> {
+    const timestamp = Date.now().toString();
+    const randomNum = Math.floor(Math.random() * 10000)
+      .toString()
+      .padStart(4, '0');
+    const orderId = `${timestamp}${randomNum}`;
+
+    const existingOrder = await this.prismaService.order.findUnique({
+      where: { shipRocketOrderId: orderId },
+    });
+
+    if (existingOrder) {
+      return this.generateUniqueOrderId();
+    }
+
+    return orderId;
+  }
+
+  private calculateLargestItemDimensions(
+    cart: Cart & {
+      cartItems: (CartItem & {
+        variant: ProductVariant;
+        product: Product;
+      })[];
+    },
+  ) {
+    let largest = { length: 0, width: 0, height: 0 };
+    let totalWeight = 0;
+
+    cart?.cartItems.forEach(item => {
+      const product = item.variant ?? item.product;
+      largest.length = Math.max(largest.length, product?.length ?? 0);
+      largest.width = Math.max(largest.width, product?.width ?? 0);
+      largest.height = Math.max(largest.height, product?.height ?? 0);
+      totalWeight += (product?.weight ?? 0) * item.quantity;
+    });
+
+    return { ...largest, weight: totalWeight };
+  }
+
+  async getAllPickupLocations() {
+    return await this.shiprocketApiService.getAllPickupLocations();
+  }
+
+  async createOrder(orderId: string, userId: string) {
+    const locations = await this.shiprocketApiService.getAllPickupLocations();
+    const cart = await this.cartService.findByUserId(userId);
+
+    const shipRocketOrderData = await this.prepareShipRocketOrderData(
+      cart,
+      locations,
+    );
+
+    const shipRocketOrder =
+      await this.createShipRocketOrder(shipRocketOrderData);
+
+    const awbNumber = await this.generateAWBNumber({
+      shipmentId: shipRocketOrder.shipment_id,
+      courierId: cart?.courierCompanyId,
+    });
+
+    await this.shiprocketApiService.schedulePickup({
+      shipmentId: shipRocketOrder.shipment_id,
+    });
+
+    await this.orderService.updateOrder(orderId, {
+      awbCode: awbNumber,
+      shipRocketOrderId: shipRocketOrder.order_id,
+      shipmentId: shipRocketOrder.shipment_id,
+    });
+  }
+
+  private async prepareShipRocketOrderData(
+    cart: Cart & {
+      cartItems: (CartItem & { product: Product; variant: ProductVariant })[];
+      billingAddress: Address;
+      shippingAddress: Address;
+    },
+    locations: any,
+  ): Promise<CreateShipRocketOrderDto> {
+    const dimensions = this.calculateLargestItemDimensions(cart);
+
+    const shipRocketOrderData: CreateShipRocketOrderDto = {
+      order_id: await this.generateUniqueOrderId(),
+      order_date: new Date().toISOString(),
+      pickup_location:
+        locations?.shipping_address &&
+        locations?.shipping_address[0]?.pickup_location,
+      billing_customer_name: cart?.billingAddress?.firstName,
+      billing_last_name: cart?.billingAddress?.lastName,
+      billing_address: cart?.billingAddress?.address,
+      billing_address_2: cart?.billingAddress?.address2,
+      billing_city: cart?.billingAddress?.city,
+      billing_pincode: cart?.billingAddress?.pincode,
+      billing_state: cart?.billingAddress?.state,
+      billing_country: cart?.billingAddress?.country,
+      billing_email: cart?.billingAddress?.email,
+      billing_phone: cart?.billingAddress?.phone,
+      shipping_is_billing: cart?.shippingAddressId === cart?.billingAddressId,
+      order_items: cart?.cartItems.map(item => ({
+        name: item.product.name,
+        sku: item.variant ? item.variant.sku : item.product.sku,
+        units: item.quantity,
+        selling_price: item.variant
+          ? (item.variant.discountedPrice ?? item.variant.price)
+          : (item.product.discountedPrice ?? item.product.price),
+      })),
+      payment_method: 'COD',
+      total_discount: 0,
+      sub_total: cart?.cartItems?.reduce((acc, item) => {
+        return acc + item.product.discountedPrice * item.quantity;
+      }, 0),
+      length: dimensions.length,
+      breadth: dimensions.width,
+      weight: dimensions.weight,
+      height: dimensions.height,
+    };
+
+    if (cart?.shippingAddressId !== cart?.billingAddressId) {
+      shipRocketOrderData.shipping_customer_name =
+        cart?.shippingAddress?.firstName;
+      shipRocketOrderData.shipping_last_name = cart?.shippingAddress?.lastName;
+      shipRocketOrderData.shipping_address = cart?.shippingAddress?.address;
+      shipRocketOrderData.shipping_address_2 = cart?.shippingAddress?.address2;
+      shipRocketOrderData.shipping_city = cart?.shippingAddress?.city;
+      shipRocketOrderData.shipping_pincode = cart?.shippingAddress?.pincode;
+      shipRocketOrderData.shipping_country = cart?.shippingAddress?.country;
+      shipRocketOrderData.shipping_state = cart?.shippingAddress?.state;
+      shipRocketOrderData.shipping_email = cart?.shippingAddress?.email;
+      shipRocketOrderData.shipping_phone = cart?.shippingAddress?.phone;
+    }
+
+    return shipRocketOrderData;
+  }
 
   async getCharges(userId: string, cartId: string, data: CalculateShippingDto) {
     try {
@@ -68,7 +204,8 @@ export class ShippingService {
 
       if (data.delivery_postcode) {
         let weightInKg = weight / 1000;
-        const pickupLocations = await this.getAllPickupLocations();
+        const pickupLocations =
+          await this.shiprocketApiService.getAllPickupLocations();
 
         if (!pickupLocations?.shipping_address?.[0]?.pickup_location) {
           throw new InternalServerErrorException('Pickup location not found');
@@ -79,17 +216,12 @@ export class ShippingService {
         );
 
         const courierServiceabilityResponseData =
-          await this.shiprocketApiService.get<ICourierServiceabilityResponse>(
-            'courier/serviceability/',
-            {
-              params: {
-                pickup_postcode: pinCode,
-                weight: weightInKg,
-                delivery_postcode: data.delivery_postcode,
-                cod: data.cod,
-              },
-            },
-          );
+          await this.shiprocketApiService.getCourierServiceability({
+            pickup_postcode: pinCode,
+            weight: weightInKg,
+            delivery_postcode: data.delivery_postcode,
+            cod: data.cod,
+          });
 
         if (
           courierServiceabilityResponseData?.data?.available_courier_companies
@@ -108,7 +240,7 @@ export class ShippingService {
           courierServiceabilityResponseData?.data?.available_courier_companies;
 
         let shippingCourier: ICourierCompany = availableCourierCompanies.find(
-          (company) =>
+          company =>
             company.courier_company_id === shipRocketRecommendedCourierId,
         );
 
@@ -165,28 +297,11 @@ export class ShippingService {
     }
   }
 
-  async getAllPickupLocations(): Promise<IPickupLocationsResponse['data']> {
-    try {
-      const data =
-        await this.shiprocketApiService.get<IPickupLocationsResponse>(
-          'settings/company/pickup',
-        );
-
-      return data?.data;
-    } catch (err) {
-      this.logger.error('Error fetching pickup locations', err);
-      throw new InternalServerErrorException('Error fetching pickup locations');
-    }
-  }
-
   async createShipRocketOrder(
     dto: CreateShipRocketOrderDto,
   ): Promise<ICreateShipRocketOrderResponse> {
     try {
-      return await this.shiprocketApiService.post<ICreateShipRocketOrderResponse>(
-        '/orders/create/adhoc',
-        dto,
-      );
+      return await this.shiprocketApiService.createOrder(dto);
     } catch (err: any) {
       this.logger.error('Error creating order', err?.response?.data);
       throw new InternalServerErrorException('Error creating order');
@@ -195,9 +310,7 @@ export class ShippingService {
 
   async getShipRocketOrders() {
     try {
-      return await this.shiprocketApiService.get<IShipRocketOrdersResponse>(
-        '/orders',
-      );
+      return await this.shiprocketApiService.getOrders();
     } catch (err: any) {
       this.logger.error('Error fetching orders', err?.response?.data ?? err);
       throw new InternalServerErrorException('Error fetching orders');
@@ -206,28 +319,17 @@ export class ShippingService {
 
   async generateAWBNumber(dto: GenerateAWBDto) {
     try {
-      const data =
-        await this.shiprocketApiService.post<IShipRocketGenerateAWBResponse>(
-          'courier/assign/awb',
-          {
-            shipment_id: dto.shipmentId,
-            courier_id: dto.courierId,
-          },
-        );
+      const data = await this.shiprocketApiService.generateAWBNumber(dto);
 
       this.logger.log('response generateAWBNumber', data);
 
-      const awbNumber = data?.response?.data?.awb_code;
+      const awbNumber = data?.awb_code;
 
       if (!awbNumber) {
-        throw new BadRequestException(
-          data?.message ?? 'Failed to generate AWB',
-        );
+        throw new BadRequestException('Failed to generate AWB');
       }
 
-      return {
-        awbNumber,
-      };
+      return awbNumber;
     } catch (error: any) {
       this.logger.error(
         'Error generating AWB:',
@@ -240,48 +342,9 @@ export class ShippingService {
     }
   }
 
-  async schedulePickup(
-    dto: SchedulePickupDto,
-  ): Promise<ISchedulePickupResponse> {
-    try {
-      return await this.shiprocketApiService.post<ISchedulePickupResponse>(
-        'courier/generate/pickup',
-        {
-          shipment_id: dto.shipmentId,
-          pickup_date: dto.pickup_date,
-          status: dto.status,
-        },
-      );
-    } catch (err: any) {
-      this.logger.error('Error scheduling pickup', err?.response?.data ?? err);
-      throw new InternalServerErrorException(
-        err?.response?.data ?? 'Error scheduling pickup',
-      );
-    }
-  }
-
-  async cancelOrder(dto: CancelOrderDto) {
-    try {
-      return await this.shiprocketApiService.post('orders/cancel', {
-        ids: dto.ids,
-      });
-    } catch (err: any) {
-      this.logger.error('Error cancelling order', err?.response?.data ?? err);
-      throw new InternalServerErrorException('Error cancelling order');
-    }
-  }
-
   async validatePincode(pincode: string) {
     try {
-      const data =
-        await this.shiprocketApiService.get<IPincodeValidationResponse>(
-          'open/postcode/details',
-          {
-            params: {
-              postcode: pincode,
-            },
-          },
-        );
+      const data = await this.shiprocketApiService.getPostCodeDetails(pincode);
 
       this.logger.log('dataaa', data);
 

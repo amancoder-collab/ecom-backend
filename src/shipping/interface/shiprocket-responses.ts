@@ -213,7 +213,7 @@ export interface IPickupLocationsResponse {
   };
 }
 
-interface IPickupLocation {
+export interface IPickupLocation {
   id: number;
   pickup_location: string;
   address_type: null | string;
@@ -327,4 +327,12 @@ interface IOrderShipment {
   rto_delivered_date: string;
   delivered_date: string | null;
   etd_escalation_btn: boolean;
+}
+
+export interface ICreateReturnOrderResponse {
+  order_id: number;
+  shipment_id: number;
+  status: string;
+  status_code: number;
+  company_name: string;
 }

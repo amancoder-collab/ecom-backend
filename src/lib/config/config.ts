@@ -18,6 +18,7 @@ export const configValidationSchema = Joi.object({
   CLOUDINARY_CLOUD_NAME: Joi.string().required(),
   CLOUDINARY_API_KEY: Joi.string().required(),
   CLOUDINARY_API_SECRET: Joi.string().required(),
+  RABBITMQ_URL: Joi.string().default('amqp://localhost:5672'),
 });
 
 export default registerAs('app', () => {
@@ -38,6 +39,7 @@ export default registerAs('app', () => {
     cloudinaryCloudName: process.env.CLOUDINARY_CLOUD_NAME,
     cloudinaryApiKey: process.env.CLOUDINARY_API_KEY,
     cloudinaryApiSecret: process.env.CLOUDINARY_API_SECRET,
+    rabbitMQUrl: process.env.RABBITMQ_URL,
   };
 
   const { error } = configValidationSchema.validate(process.env, {
