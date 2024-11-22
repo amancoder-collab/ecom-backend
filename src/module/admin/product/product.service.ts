@@ -245,7 +245,9 @@ export class ProductService {
 
       await Promise.all(
         dto.variants.map(async (variant, index) => {
-          if (index > 1) return;
+          // if (index > 1) return;
+
+          duplicate attribute values are being created
           const createdVariant = await this.prismaService.productVariant.create(
             {
               data: {
@@ -276,8 +278,6 @@ export class ProductService {
                   where: { title: attr.title, productId: product.id },
                 });
 
-              console.log("Existing Attribute", existingAttribute);
-
               if (!existingAttribute) {
                 await this.prismaService.productVariant.update({
                   where: { id: createdVariant.id },
@@ -307,15 +307,6 @@ export class ProductService {
                       attributeId: existingAttribute.id,
                     },
                   });
-
-                const allAttributeValues =
-                  await this.prismaService.productAttributeValue.findMany({
-                    where: {
-                      attributeId: existingAttribute.id,
-                    },
-                  });
-
-                console.log("All Attribute Values", allAttributeValues);
 
                 console.log(
                   "Existing Attribute Value",
