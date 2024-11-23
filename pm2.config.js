@@ -3,7 +3,7 @@ module.exports = {
     {
       name: "my-app",
       script: "./dist/src/main.js",
-      instances: "max",
+      instances: "1",
       exec_mode: "cluster",
       autorestart: true,
       watch: false,
