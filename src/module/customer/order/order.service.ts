@@ -4,12 +4,12 @@ import {
   Injectable,
   InternalServerErrorException,
   Logger,
-} from '@nestjs/common';
-import { PrismaService } from 'src/module/prisma/prisma.service';
-import { OrderProducer } from 'src/rabbitmq/producers/order.producer';
-import { CartService } from '../cart/cart.service';
-import { CreateOrderDto } from './dto/create-order.dto';
-import { UpdateOrderDto } from './dto/update-order.dto';
+} from "@nestjs/common";
+import { PrismaService } from "src/module/prisma/prisma.service";
+import { OrderProducer } from "src/rabbitmq/producers/order.producer";
+import { CartService } from "../cart/cart.service";
+import { CreateOrderDto } from "./dto/create-order.dto";
+import { UpdateOrderDto } from "./dto/update-order.dto";
 
 @Injectable()
 export class OrderService {
@@ -161,7 +161,7 @@ export class OrderService {
         },
       });
 
-      await this.orderProducer.publishOrderCreated(order.id, userId);
+      // await this.orderProducer.publishOrderCreated(order.id, userId);
 
       return order;
     } catch (error: any) {
