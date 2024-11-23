@@ -247,7 +247,7 @@ export class ProductService {
         dto.variants.map(async (variant, index) => {
           // if (index > 1) return;
 
-          duplicate attribute values are being created
+          // !FIXME: duplicate attribute values are being created
           const createdVariant = await this.prismaService.productVariant.create(
             {
               data: {
