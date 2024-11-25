@@ -230,11 +230,11 @@ export class ProductService {
     });
 
     if (dto.hasVariants) {
-      const attributes = await Promise.all(
+      const createdAttributes = await Promise.all(
         dto.attributes.map((attr) =>
           this.prismaService.productAttribute.create({
             data: {
-              title: attr.title,
+              title: attr.title.toLowerCase(),
               product: {
                 connect: { id: product.id },
               },
@@ -245,165 +245,42 @@ export class ProductService {
 
       await Promise.all(
         dto.variants.map(async (variant, index) => {
-          // if (index > 1) return;
+          await this.prismaService.productVariant.create({
+            data: {
+              attributeValues: {
+                create: variant.attributes.map((attr) => {
+                  const attributeId = createdAttributes.find(
+                    (crAttr) => crAttr.title === attr.title,
+                  )?.id;
 
-          duplicate attribute values are being created
-          const createdVariant = await this.prismaService.productVariant.create(
-            {
-              data: {
-                product: {
-                  connect: {
-                    id: product.id,
-                  },
-                },
-                sku: variant.sku,
-                weight: variant.weight,
-                width: variant.width,
-                height: variant.height,
-                length: variant.length,
-                thumbnail: variant.thumbnail,
-                images: variant.images,
-                stock: variant.stock,
-                price: variant.price,
-                isActive: variant.isActive,
-                discountedPrice: variant.discountedPrice,
-              },
-            },
-          );
-
-          await Promise.all(
-            variant.attributes.map(async (attr) => {
-              const existingAttribute =
-                await this.prismaService.productAttribute.findFirst({
-                  where: { title: attr.title, productId: product.id },
-                });
-
-              if (!existingAttribute) {
-                await this.prismaService.productVariant.update({
-                  where: { id: createdVariant.id },
-                  data: {
-                    attributeValues: {
-                      create: {
-                        value: attr.value,
-                        attribute: {
-                          create: {
-                            title: attr.title,
-                            product: {
-                              connect: {
-                                id: product.id,
-                              },
-                            },
-                          },
-                        },
+                  return {
+                    value: attr.value.toLowerCase(),
+                    attribute: {
+                      connect: {
+                        id: attributeId,
                       },
                     },
-                  },
-                });
-              } else {
-                const existingAttributeValue =
-                  await this.prismaService.productAttributeValue.findFirst({
-                    where: {
-                      value: attr.value,
-                      attributeId: existingAttribute.id,
-                    },
-                  });
-
-                console.log(
-                  "Existing Attribute Value",
-                  existingAttributeValue,
-                  "For Attribute ID",
-                  existingAttribute.id,
-                  "For Value",
-                  attr.value,
-                  "For attr",
-                  attr,
-                );
-
-                await this.prismaService.productVariant.update({
-                  where: { id: createdVariant.id },
-                  data: {
-                    ...(!existingAttributeValue
-                      ? {
-                          attributeValues: {
-                            create: {
-                              value: attr.value,
-                              attribute: {
-                                connect: {
-                                  id: existingAttribute.id,
-                                },
-                              },
-                            },
-                          },
-                        }
-                      : {
-                          attributeValues: {
-                            connect: { id: existingAttributeValue.id },
-                          },
-                        }),
-                  },
-                });
-              }
-            }),
-          );
-
-          // Get existing attribute values
-          // const existingAttributeValues =
-          //   await prisma.productAttributeValue.findMany({
-          //     where: {
-          //       value: {
-          //         in: variant.attributes.map((attr) => attr.value),
-          //       },
-          //       attribute: {
-          //         title: {
-          //           in: variant.attributes.map((attr) => attr.title),
-          //         },
-          //       },
-          //     },
-          //     include: {
-          //       attribute: true,
-          //     },
-          //   });
-
-          // const { existingAttributes, newAttributes } =
-          //   variant.attributes.reduce(
-          //     (acc, attr) => {
-          //       const existingValue = existingAttributeValues.find(
-          //         (existing) =>
-          //           existing.value === attr.value &&
-          //           existing.attribute.title === attr.title,
-          //       );
-
-          //       if (existingValue) {
-          //         acc.existingAttributes.push({
-          //           value: attr.value,
-          //           attributeId: existingValue.attributeId,
-          //           id: existingValue.id,
-          //         });
-          //       } else {
-          //         acc.newAttributes.push(attr);
-          //       }
-
-          //       return acc;
-          //     },
-          //     { existingAttributes: [], newAttributes: [] },
-          //   );
-
-          // console.log("Existing Attributes Values", existingAttributeValues);
-          // console.log("Attributes to connect:", existingAttributes);
-          // console.log("Attributes to create:", newAttributes);
-
-          // if (existingAttributes.length > 0) {
-          //   await prisma.productVariant.update({
-          //     where: { id: createdVariant.id },
-          //     data: {
-          //       attributeValues: {
-          //         connect: existingAttributeValues.map((attr) => ({
-          //           id: attr.id,
-          //         })),
-          //       },
-          //     },
-          //   });
-          // }
+                  };
+                }),
+              },
+              product: {
+                connect: {
+                  id: product.id,
+                },
+              },
+              sku: variant.sku,
+              weight: variant.weight,
+              width: variant.width,
+              height: variant.height,
+              length: variant.length,
+              thumbnail: variant.thumbnail,
+              images: variant.images,
+              stock: variant.stock,
+              price: variant.price,
+              isActive: variant.isActive,
+              discountedPrice: variant.discountedPrice,
+            },
+          });
         }),
       );
     }

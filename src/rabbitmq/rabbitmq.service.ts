@@ -1,7 +1,7 @@
-import { Injectable, OnModuleInit, Logger } from '@nestjs/common';
-import * as amqp from 'amqplib';
-import { AppConfigService } from 'src/lib/config/config.service';
-import { QUEUE_NAMES } from './constants/queues.constant';
+import { Injectable, OnModuleInit, Logger } from "@nestjs/common";
+import * as amqp from "amqplib";
+import { AppConfigService } from "src/lib/config/config.service";
+import { QUEUE_NAMES } from "./constants/queues.constant";
 
 @Injectable()
 export class RabbitMQService implements OnModuleInit {
@@ -20,7 +20,7 @@ export class RabbitMQService implements OnModuleInit {
     if (this.initialized) return;
 
     try {
-      this.logger.log('Connecting to RabbitMQ');
+      this.logger.log("Connecting to RabbitMQ");
       this.connection = await amqp.connect(this.configService.rabbitMQUrl);
       this.channel = await this.connection.createChannel();
 
@@ -31,9 +31,9 @@ export class RabbitMQService implements OnModuleInit {
       }
 
       this.initialized = true;
-      this.logger.log('RabbitMQ initialization completed');
+      this.logger.log("RabbitMQ initialization completed");
     } catch (error) {
-      this.logger.error('RabbitMQ connection failed:', error);
+      this.logger.error("RabbitMQ connection failed:", error);
       throw error;
     }
   }
@@ -48,7 +48,7 @@ export class RabbitMQService implements OnModuleInit {
         persistent: true,
       });
     } catch (error) {
-      console.error('Error publishing message:', error);
+      console.error("Error publishing message:", error);
       throw error;
     }
   }
@@ -62,7 +62,7 @@ export class RabbitMQService implements OnModuleInit {
     }
 
     try {
-      await this.channel.consume(queue, async message => {
+      await this.channel.consume(queue, async (message) => {
         if (message) {
           const content = JSON.parse(message.content.toString());
           await callback(content);
@@ -70,7 +70,7 @@ export class RabbitMQService implements OnModuleInit {
         }
       });
     } catch (error) {
-      console.error('Error consuming messages:', error);
+      console.error("Error consuming messages:", error);
       throw error;
     }
   }
