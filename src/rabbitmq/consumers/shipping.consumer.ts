@@ -1,7 +1,7 @@
-import { Injectable, Logger } from '@nestjs/common';
-import { RabbitMQService } from '../rabbitmq.service';
-import { ShippingService } from '../../shipping/shipping.service';
-import { QUEUE_NAMES } from '../constants/queues.constant';
+import { Injectable, Logger } from "@nestjs/common";
+import { ShippingService } from "../../shipping/shipping.service";
+import { QUEUE_NAMES } from "../constants/queues.constant";
+import { RabbitMQService } from "../rabbitmq.service";
 
 @Injectable()
 export class ShippingConsumer {
@@ -13,37 +13,76 @@ export class ShippingConsumer {
   ) {}
 
   async onModuleInit() {
-    this.logger.log('ShippingConsumer initialized');
+    this.logger.log("ShippingConsumer initialized");
     await this.setupConsumers();
   }
 
   private async setupConsumers() {
     await this.rabbitMQService.consumeMessages(
+      QUEUE_NAMES.SHIPPING_FAILED,
+      async (message, channel, msg) => {
+        try {
+          this.logger.log("Shipping failed for order", {
+            orderId: message.orderId,
+            userId: message.userId,
+            error: message.error,
+            retryCount: message.retryCount,
+          });
+        } catch (error: any) {
+          this.logger.error("Failed to process order", {
+            orderId: message.orderId,
+            error: error.message,
+          });
+        }
+      },
+    );
+
+    await this.rabbitMQService.consumeMessages(
       QUEUE_NAMES.ORDER_CREATED,
-      async message => {
+      async (message, channel, msg) => {
         try {
           this.logger.log(`Processing shipping for order: ${message.orderId}`);
 
-          // Reference to existing shipping creation code
           await this.shippingService.createOrder(
             message.orderId,
             message.userId,
           );
         } catch (error: any) {
-          this.logger.error('Failed to process shipping', {
-            error: error.message,
+          this.logger.error("Error in order creation", {
             orderId: message.orderId,
+            error: error.message,
           });
 
-          // Publish to failed queue
-          await this.rabbitMQService.publishMessage(
-            QUEUE_NAMES.SHIPPING_FAILED,
-            {
-              orderId: message.orderId,
-              error: error.message,
-              timestamp: new Date().toISOString(),
-            },
-          );
+          const retryCount = (msg.properties.headers?.retryCount ||
+            0) as number;
+          const MAX_RETRIES = 3;
+
+          if (retryCount < MAX_RETRIES) {
+            const updatedHeaders = {
+              ...msg.properties.headers,
+              retryCount: retryCount + 1,
+            };
+
+            await this.rabbitMQService.publishMessage(
+              QUEUE_NAMES.ORDER_CREATED_RETRY,
+              message,
+              {
+                headers: updatedHeaders,
+                expiration: String(Math.pow(2, retryCount) * 1000),
+              },
+            );
+          } else {
+            await this.rabbitMQService.publishMessage(
+              QUEUE_NAMES.SHIPPING_FAILED,
+              {
+                orderId: message.orderId,
+                userId: message.userId,
+                error: error,
+                retryCount,
+                timestamp: new Date().toISOString(),
+              },
+            );
+          }
         }
       },
     );

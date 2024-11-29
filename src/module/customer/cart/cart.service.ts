@@ -4,14 +4,14 @@ import {
   Inject,
   Injectable,
   NotFoundException,
-} from '@nestjs/common';
-import { ClientLogError } from 'src/common/helper/error_description';
-import { PrismaService } from 'src/module/prisma/prisma.service';
-import { ShippingService } from 'src/shipping/shipping.service';
-import { CustomerService } from '../customer.service';
-import { AddCartItemDto } from './dto/add-cart-item.dto';
-import { CartAddressDto } from './dto/create-address.dto';
-import { UpdateCartItemQuantityDto } from './dto/update-cart-item.dto';
+} from "@nestjs/common";
+import { ClientLogError } from "src/common/helper/error_description";
+import { PrismaService } from "src/module/prisma/prisma.service";
+import { ShippingService } from "src/shipping/shipping.service";
+import { CustomerService } from "../customer.service";
+import { AddCartItemDto } from "./dto/add-cart-item.dto";
+import { CartAddressDto } from "./dto/create-address.dto";
+import { UpdateCartItemQuantityDto } from "./dto/update-cart-item.dto";
 
 @Injectable()
 export class CartService {
@@ -23,7 +23,7 @@ export class CartService {
   ) {}
 
   async addItemToCart(cartId: string, dto: AddCartItemDto, userId: string) {
-    const result = await this.prismaService.$transaction(async (prisma) => {
+    const cart = await this.prismaService.$transaction(async (prisma) => {
       const [existingUser, existingProduct] = await Promise.all([
         prisma.user.findUnique({
           where: { id: userId },
@@ -55,7 +55,7 @@ export class CartService {
 
       if (existingProduct.hasVariants && !dto.variantId) {
         throw new BadRequestException(
-          'Variant ID is required for this product',
+          "Variant ID is required for this product",
         );
       }
 
@@ -85,6 +85,7 @@ export class CartService {
           },
           include: {
             cartItems: true,
+            shippingAddress: true,
           },
         });
       } else {
@@ -103,12 +104,16 @@ export class CartService {
           },
           include: {
             cartItems: true,
+            shippingAddress: true,
           },
         });
       }
     });
 
-    return result;
+    return await this.shippingService.getCharges(cart.id, {
+      delivery_postcode: cart.shippingAddress?.pincode,
+      cod: 0,
+    });
   }
 
   async createCart(userId: string) {
@@ -119,7 +124,7 @@ export class CartService {
     });
 
     if (existingCart) {
-      throw new BadRequestException('Cart already exists');
+      throw new BadRequestException("Cart already exists");
     }
 
     return await this.prismaService.cart.create({
@@ -133,30 +138,19 @@ export class CartService {
     });
   }
 
-  async removeFromCart(id: string, userId: string) {
-    const cartItem = await this.prismaService.cart.findFirst({
-      where: { id, userId: userId },
-    });
-
-    if (!cartItem) {
-      throw new BadRequestException(ClientLogError.CART_NOT_EXIST);
-    }
-
-    return await this.prismaService.cart.delete({
-      where: { id },
-    });
-  }
-
   async removeItemFromCart(cartId: string, itemId: string, userId: string) {
-    const cartItem = await this.prismaService.cart.findFirst({
+    const cart = await this.prismaService.cart.findFirst({
       where: { id: cartId, userId: userId },
+      include: {
+        shippingAddress: true,
+      },
     });
 
-    if (!cartItem) {
+    if (!cart) {
       throw new BadRequestException(ClientLogError.CART_NOT_EXIST);
     }
 
-    return await this.prismaService.cart.update({
+    await this.prismaService.cart.update({
       where: { id: cartId },
       data: {
         cartItems: {
@@ -165,6 +159,11 @@ export class CartService {
           },
         },
       },
+    });
+
+    return await this.shippingService.getCharges(cart.id, {
+      delivery_postcode: cart.shippingAddress?.pincode,
+      cod: 0,
     });
   }
 
@@ -232,6 +231,9 @@ export class CartService {
   ) {
     const cart = await this.prismaService.cart.findFirst({
       where: { id: cartId, userId: userId },
+      include: {
+        shippingAddress: true,
+      },
     });
 
     if (!cart) {
@@ -243,24 +245,29 @@ export class CartService {
     });
 
     if (!cartItem) {
-      throw new BadRequestException('Cart item not found');
+      throw new BadRequestException("Cart item not found");
     }
 
-    return await this.prismaService.cartItem.update({
+    await this.prismaService.cartItem.update({
       where: { id: itemId, cartId: cartId },
       data: {
         quantity: dto.quantity,
       },
     });
+
+    return await this.shippingService.getCharges(cart.id, {
+      delivery_postcode: cart.shippingAddress?.pincode,
+      cod: 0,
+    });
   }
 
   async updateCartAddress(cartId: string, userId: string, dto: CartAddressDto) {
-    const existingCart = await this.prismaService.cart.findUnique({
+    const cart = await this.prismaService.cart.findUnique({
       where: { id: cartId },
       include: { shippingAddress: true, billingAddress: true },
     });
 
-    if (!existingCart) {
+    if (!cart) {
       throw new NotFoundException(ClientLogError.CART_NOT_EXIST);
     }
 
@@ -289,7 +296,7 @@ export class CartService {
       );
     }
 
-    return await this.prismaService.cart.update({
+    await this.prismaService.cart.update({
       where: { id: cartId },
       data: {
         shippingAddress: {
@@ -303,6 +310,25 @@ export class CartService {
         shippingAddress: true,
         billingAddress: true,
       },
+    });
+
+    return await this.shippingService.getCharges(cart.id, {
+      delivery_postcode: cart.shippingAddress?.pincode,
+      cod: 0,
+    });
+  }
+
+  async deleteCart(id: string) {
+    const cartItem = await this.prismaService.cart.findUnique({
+      where: { id },
+    });
+
+    if (!cartItem) {
+      throw new BadRequestException(ClientLogError.CART_NOT_EXIST);
+    }
+
+    return await this.prismaService.cart.delete({
+      where: { id },
     });
   }
 }

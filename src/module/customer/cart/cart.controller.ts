@@ -9,19 +9,19 @@ import {
   Put,
   Request,
   UseGuards,
-} from '@nestjs/common';
-import { ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
-import { User } from '@prisma/client';
-import { ApiError } from 'src/common/helper/error_description';
-import { CurrentUser } from '../auth/decorators/get-current-user.decorator';
-import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
-import { CartService } from './cart.service';
-import { AddCartItemDto } from './dto/add-cart-item.dto';
-import { CartAddressDto } from './dto/create-address.dto';
-import { UpdateCartItemQuantityDto } from './dto/update-cart-item.dto';
+} from "@nestjs/common";
+import { ApiOperation, ApiResponse, ApiTags } from "@nestjs/swagger";
+import { User } from "@prisma/client";
+import { ApiError } from "src/common/helper/error_description";
+import { CurrentUser } from "../auth/decorators/get-current-user.decorator";
+import { JwtAuthGuard } from "../auth/guards/jwt-auth.guard";
+import { CartService } from "./cart.service";
+import { AddCartItemDto } from "./dto/add-cart-item.dto";
+import { CartAddressDto } from "./dto/create-address.dto";
+import { UpdateCartItemQuantityDto } from "./dto/update-cart-item.dto";
 
-@Controller('customer/cart')
-@ApiTags('Cart')
+@Controller("customer/cart")
+@ApiTags("Cart")
 @UseGuards(JwtAuthGuard)
 export class CartController {
   constructor(private readonly cartService: CartService) {}
@@ -40,8 +40,8 @@ export class CartController {
     description: ApiError.BAD_REQUEST,
   })
   @ApiOperation({
-    summary: 'Get cart by USER',
-    description: 'Get cart by USER',
+    summary: "Get cart by USER",
+    description: "Get cart by USER",
   })
   async getCartByUserId(@CurrentUser() user: User) {
     return this.cartService.findByUserId(user.id);
@@ -53,7 +53,7 @@ export class CartController {
     return this.cartService.createCart(UserId);
   }
 
-  @Post('/:cartId/add-item')
+  @Post("/:cartId/add-item")
   @ApiResponse({
     status: HttpStatus.OK,
     description: ApiError.SUCCESS_MESSAGE,
@@ -71,11 +71,11 @@ export class CartController {
     description: ApiError.BAD_REQUEST,
   })
   @ApiOperation({
-    summary: 'add cart by USER',
-    description: 'add cart by USER',
+    summary: "add cart by USER",
+    description: "add cart by USER",
   })
   async addItemToCart(
-    @Param('cartId') cartId: string,
+    @Param("cartId") cartId: string,
     @Body() dto: AddCartItemDto,
     @Request() req,
   ) {
@@ -83,28 +83,28 @@ export class CartController {
     return this.cartService.addItemToCart(cartId, dto, UserId);
   }
 
-  @Put('/:cartId/update-item-quantity/:itemId')
+  @Put("/:cartId/update-item-quantity/:itemId")
   async updateCartItemQuantity(
     @Request() req,
-    @Param('cartId') cartId: string,
-    @Param('itemId') itemId: string,
+    @Param("cartId") cartId: string,
+    @Param("itemId") itemId: string,
     @Body() dto: UpdateCartItemQuantityDto,
   ) {
     const UserId = req.user.id;
     return this.cartService.updateCartItemQuantity(cartId, itemId, dto, UserId);
   }
 
-  @Delete('/:cartId/remove-item/:itemId')
+  @Delete("/:cartId/remove-item/:itemId")
   async removeItemFromCart(
     @Request() req,
-    @Param('cartId') cartId: string,
-    @Param('itemId') itemId: string,
+    @Param("cartId") cartId: string,
+    @Param("itemId") itemId: string,
   ) {
     const UserId = req.user.id;
     return await this.cartService.removeItemFromCart(cartId, itemId, UserId);
   }
 
-  @Delete(':id')
+  @Delete(":id")
   @ApiResponse({
     status: HttpStatus.OK,
     description: ApiError.SUCCESS_MESSAGE,
@@ -122,15 +122,14 @@ export class CartController {
     description: ApiError.BAD_REQUEST,
   })
   @ApiOperation({
-    summary: 'update cart by USER',
-    description: 'update cart by USER',
+    summary: "update cart by USER",
+    description: "update cart by USER",
   })
-  async deleteProducts(@Param('id') productId: string, @Request() req) {
-    const UserId = req.user.id;
-    return this.cartService.removeFromCart(productId, UserId);
+  async deleteProducts(@Param("id") id: string) {
+    return this.cartService.deleteCart(id);
   }
 
-  @Put('/:cartId/update-address')
+  @Put("/:cartId/update-address")
   @ApiResponse({
     status: HttpStatus.OK,
     description: ApiError.SUCCESS_MESSAGE,
@@ -148,12 +147,12 @@ export class CartController {
     description: ApiError.BAD_REQUEST,
   })
   @ApiOperation({
-    summary: 'update address by USER',
-    description: 'update address by USER',
+    summary: "update address by USER",
+    description: "update address by USER",
   })
   async updateCartAddress(
     @Request() req,
-    @Param('cartId') cartId: string,
+    @Param("cartId") cartId: string,
     @Body() dto: CartAddressDto,
   ) {
     const UserId = req.user.id;

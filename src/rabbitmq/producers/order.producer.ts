@@ -1,6 +1,6 @@
-import { Injectable } from '@nestjs/common';
-import { RabbitMQService } from '../rabbitmq.service';
-import { QUEUE_NAMES } from '../constants/queues.constant';
+import { Injectable } from "@nestjs/common";
+import { RabbitMQService } from "../rabbitmq.service";
+import { QUEUE_NAMES } from "../constants/queues.constant";
 
 @Injectable()
 export class OrderProducer {

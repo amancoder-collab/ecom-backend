@@ -4,12 +4,11 @@ import {
   Injectable,
   InternalServerErrorException,
   Logger,
-} from '@nestjs/common';
-import { PrismaService } from 'src/module/prisma/prisma.service';
-import { OrderProducer } from 'src/rabbitmq/producers/order.producer';
-import { CartService } from '../cart/cart.service';
-import { CreateOrderDto } from './dto/create-order.dto';
-import { UpdateOrderDto } from './dto/update-order.dto';
+} from "@nestjs/common";
+import { PrismaService } from "src/module/prisma/prisma.service";
+import { OrderProducer } from "src/rabbitmq/producers/order.producer";
+import { CartService } from "../cart/cart.service";
+import { UpdateOrderDto } from "./dto/update-order.dto";
 
 @Injectable()
 export class OrderService {
@@ -36,7 +35,14 @@ export class OrderService {
     return this.prismaService.order.findUnique({
       where: { id },
       include: {
-        orderItems: true,
+        orderItems: {
+          include: {
+            product: true,
+            variant: true,
+          },
+        },
+        billingAddress: true,
+        shippingAddress: true,
         user: true,
         payment: true,
       },
@@ -77,7 +83,7 @@ export class OrderService {
     });
   }
 
-  async createOrder(userId: string, dto: CreateOrderDto) {
+  async createOrder(userId: string) {
     try {
       const cart = await this.cartService.findByUserId(userId);
 
@@ -162,6 +168,8 @@ export class OrderService {
       });
 
       await this.orderProducer.publishOrderCreated(order.id, userId);
+
+      // await this.cartService.delete(cart.id);
 
       return order;
     } catch (error: any) {
