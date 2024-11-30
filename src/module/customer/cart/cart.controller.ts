@@ -85,13 +85,11 @@ export class CartController {
 
   @Put("/:cartId/update-item-quantity/:itemId")
   async updateCartItemQuantity(
-    @Request() req,
     @Param("cartId") cartId: string,
     @Param("itemId") itemId: string,
     @Body() dto: UpdateCartItemQuantityDto,
   ) {
-    const UserId = req.user.id;
-    return this.cartService.updateCartItemQuantity(cartId, itemId, dto, UserId);
+    return this.cartService.updateCartItemQuantity(cartId, itemId, dto);
   }
 
   @Delete("/:cartId/remove-item/:itemId")
@@ -100,8 +98,7 @@ export class CartController {
     @Param("cartId") cartId: string,
     @Param("itemId") itemId: string,
   ) {
-    const UserId = req.user.id;
-    return await this.cartService.removeItemFromCart(cartId, itemId, UserId);
+    return await this.cartService.removeItemFromCart(cartId, itemId);
   }
 
   @Delete(":id")
@@ -156,6 +153,6 @@ export class CartController {
     @Body() dto: CartAddressDto,
   ) {
     const UserId = req.user.id;
-    return this.cartService.updateCartAddress(cartId, UserId, dto);
+    return this.cartService.updateCartAddress(cartId, dto);
   }
 }

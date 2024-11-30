@@ -169,7 +169,7 @@ export class OrderService {
 
       await this.orderProducer.publishOrderCreated(order.id, userId);
 
-      // await this.cartService.delete(cart.id);
+      await this.cartService.deleteCart(cart.id);
 
       return order;
     } catch (error: any) {

@@ -135,16 +135,29 @@ export class CartService {
           },
         },
       },
+      include: {
+        cartItems: {
+          include: {
+            product: true,
+            variant: {
+              include: {
+                attributeValues: {
+                  include: {
+                    attribute: true,
+                  },
+                },
+              },
+            },
+          },
+        },
+        shippingAddress: true,
+        billingAddress: true,
+      },
     });
   }
 
-  async removeItemFromCart(cartId: string, itemId: string, userId: string) {
-    const cart = await this.prismaService.cart.findFirst({
-      where: { id: cartId, userId: userId },
-      include: {
-        shippingAddress: true,
-      },
-    });
+  async removeItemFromCart(cartId: string, itemId: string) {
+    const cart = await this.findById(cartId);
 
     if (!cart) {
       throw new BadRequestException(ClientLogError.CART_NOT_EXIST);
@@ -200,7 +213,7 @@ export class CartService {
   }
 
   async findById(cartId: string) {
-    const cart = await this.prismaService.cart.findUnique({
+    const cart = await this.prismaService.cart.findFirst({
       where: {
         id: cartId,
       },
@@ -208,7 +221,15 @@ export class CartService {
         cartItems: {
           include: {
             product: true,
-            variant: true,
+            variant: {
+              include: {
+                attributeValues: {
+                  include: {
+                    attribute: true,
+                  },
+                },
+              },
+            },
           },
         },
         billingAddress: true,
@@ -227,22 +248,14 @@ export class CartService {
     cartId: string,
     itemId: string,
     dto: UpdateCartItemQuantityDto,
-    userId: string,
   ) {
-    const cart = await this.prismaService.cart.findFirst({
-      where: { id: cartId, userId: userId },
-      include: {
-        shippingAddress: true,
-      },
-    });
+    const cart = await this.findById(cartId);
 
     if (!cart) {
       throw new BadRequestException(ClientLogError.CART_NOT_EXIST);
     }
 
-    const cartItem = await this.prismaService.cartItem.findFirst({
-      where: { id: itemId, cartId: cartId },
-    });
+    const cartItem = cart?.cartItems?.find((item) => item.id === itemId);
 
     if (!cartItem) {
       throw new BadRequestException("Cart item not found");
@@ -261,11 +274,8 @@ export class CartService {
     });
   }
 
-  async updateCartAddress(cartId: string, userId: string, dto: CartAddressDto) {
-    const cart = await this.prismaService.cart.findUnique({
-      where: { id: cartId },
-      include: { shippingAddress: true, billingAddress: true },
-    });
+  async updateCartAddress(cartId: string, dto: CartAddressDto) {
+    const cart = await this.findById(cartId);
 
     if (!cart) {
       throw new NotFoundException(ClientLogError.CART_NOT_EXIST);
@@ -305,10 +315,6 @@ export class CartService {
         billingAddress: {
           connect: { id: dto.billingAddressId },
         },
-      },
-      include: {
-        shippingAddress: true,
-        billingAddress: true,
       },
     });
 
